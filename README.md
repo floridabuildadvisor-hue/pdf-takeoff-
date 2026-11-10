@@ -47,7 +47,31 @@ print(total_lf)  # 63.0 LF
 
 Formula: `wall length × plate courses × (1 + waste_percent / 100)`.
 
-The default waste allowance is 5%. The result is material linear footage, not a purchase/stock-length optimization. This first version does not yet add corner/intersection allowances, laps, splices, opening adjustments, or project-specific framing conditions. Confirm the plate build-up from the applicable plans and specifications before using the result for procurement.
+The default waste allowance is 5%. This is a baseline linear-footage estimate only. It does not derive the plate build-up or wall segments from drawings. Plate assemblies must be defined separately: bottom plates stop at openings, and single/double top plates must be counted according to the applicable wall assembly. Account for corners, intersections, laps, splices, and project-specific details before procurement. Do not use a generic linear-footage multiplier as a substitute for that assembly takeoff.
+
+### Stock-length cutting plan
+
+When the actual cut pieces and supplier stock lengths are known, use the cutting-plan helper:
+
+```python
+from framing_takeoff import plan_stock_cuts
+
+plan = plan_stock_cuts(
+    cut_lengths_ft=[6, 4, 3],
+    stock_lengths_ft=[8, 10, 12, 16],
+    kerf_ft=0.01,
+)
+for board in plan["boards"]:
+    print(board)
+print("Stock LF:", plan["total_stock_lf"])
+print("Offcut LF:", plan["offcut_lf"])
+```
+
+This uses a best-fit-decreasing heuristic: longer cuts are assigned first, then placed into the existing board that leaves the least offcut. Remaining offcuts can be reused by later cuts in the same input batch. It is a practical heuristic, not a guarantee of the globally cheapest or smallest purchase.
+
+The stock-length planner requires explicit cut lengths and available stock lengths; it does not assume a supplier's inventory. Kerf is configurable. It does not add another 5% reserve because the cutting plan already accounts for cut waste and offcuts; avoid double-counting the 5% allowance from the baseline LF estimator. Keep different plate assemblies or project scopes in separate batches when offcut reuse between them is not permitted.
+
+**Important:** the planner only optimizes a list of cuts supplied to it. It does not read drawings or determine bottom/top plate lengths, opening interruptions, corners, intersections, bearing conditions, or fire-wall assembly requirements. Those must be resolved from the plans/specifications and project RFIs before generating purchase quantities.
 
 Run the unit tests:
 
