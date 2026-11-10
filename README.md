@@ -29,3 +29,31 @@ python3 visual_inspect.py path/to/blueprint.pdf \
 ```
 
 Template matching is sensitive to symbol scale, rotation, line weight, and scan quality. It is only a starting point for consistent drawings. Inspect every result and the plan legend; adjust the threshold to reduce missed or false matches. Avoid using the candidate count as a final quantity without human verification.
+
+
+## PDF drawing intelligence (first diagnostic milestone)
+
+Inspect a client plan set before starting a material takeoff:
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 pdf_intelligence.py path/to/client-plans.pdf
+```
+
+The command creates three outputs: a JSON data report at `output/pdf_diagnostics/report.json`, a visual HTML report at `output/pdf_diagnostics/report.html`, and rendered page previews under `output/pdf_diagnostics/pages/`. The HTML report places each page preview beside its extracted sheet number, classification evidence, dimensions, text count, dimension-like strings, and review flag. Choose another JSON destination or adjust the low-text flag threshold with:
+
+```bash
+python3 pdf_intelligence.py path/to/client-plans.pdf \\
+  --output output/project-001/diagnostics.json \\
+  --min-text-chars 20
+```
+
+For each page, the report records PDF page dimensions (points and inches), orientation, rotation, extractable character count, a short text preview, a labeled sheet number when found, dimension-like text tokens, and a keyword-based discipline classification with its matched evidence. Pages with fewer than 20 non-whitespace text characters are flagged for OCR or visual review. The threshold is configurable.
+
+**Interpretation limits:** This milestone extracts text embedded in PDFs. It does not yet perform OCR on scanned sheets, recognize symbols, trace wall or opening geometry, calibrate drawing scale, or calculate takeoff quantities. Dimension strings are preserved as text; they are not converted into measurements or verified against scale. Classification is a keyword heuristic, not an AI-certified sheet identification. Review every page against the original drawing before using the report for estimating.
+
+Run tests with:
+
+```bash
+python -m unittest discover -s tests -v
+```
