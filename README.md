@@ -40,7 +40,7 @@ python3 -m pip install -r requirements.txt
 python3 pdf_intelligence.py path/to/client-plans.pdf
 ```
 
-The default JSON report is written to `output/pdf_diagnostics/report.json`. Choose another destination or adjust the low-text flag threshold with:
+The command creates three outputs: a JSON data report at `output/pdf_diagnostics/report.json`, a visual HTML report at `output/pdf_diagnostics/report.html`, and rendered page previews under `output/pdf_diagnostics/pages/`. The HTML report places each page preview beside its extracted sheet number, classification evidence, dimensions, text count, dimension-like strings, and review flag. Choose another JSON destination or adjust the low-text flag threshold with:
 
 ```bash
 python3 pdf_intelligence.py path/to/client-plans.pdf \\
