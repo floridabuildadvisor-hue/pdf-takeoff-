@@ -155,15 +155,15 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
                 text_page = page.get_textpage()
                 extracted_text = text_page.get_text_range() or ""
                 char_count = len(re.sub(r"\s+", "", extracted_text))
-                likely_scanned = char_count < min_text_chars
+                low_text_content = char_count < min_text_chars
                 pages.append({
                     "page_number": page_index + 1,
                     "dimensions": _page_dimensions(float(width_pt), float(height_pt)),
                     "rotation_degrees": int(rotation),
                     "text_char_count": char_count,
-                    "likely_scanned": likely_scanned,
+                    "low_text_content": low_text_content,
                     "review_status": (
-                        "needs_ocr_or_visual_review" if likely_scanned
+                        "needs_ocr_or_visual_review" if low_text_content
                         else "text_extracted_visual_review_required"
                     ),
                     "sheet_number": extract_sheet_number(extracted_text),
@@ -180,7 +180,7 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
         document.close()
 
     categories = Counter(page["classification"]["category"] for page in pages)
-    scanned_pages = [page["page_number"] for page in pages if page["likely_scanned"]]
+    scanned_pages = [page["page_number"] for page in pages if page["low_text_content"]]
     return {
         "schema_version": "1.0",
         "source_file": path.name,
@@ -226,7 +226,7 @@ def build_html_report(
         )
         classification = page["classification"]
         dimensions = page["dimensions"]
-        status = "Needs OCR / visual review" if page["likely_scanned"] else "Text extracted — verify visually"
+        status = "Needs OCR / visual review" if page["low_text_content"] else "Text extracted — verify visually"
         tokens = ", ".join(page["dimension_tokens"]) or "No dimension-like text tokens found"
         preview = page["text_preview"] or "No embedded text extracted"
         sheet = page["sheet_number"] or "Sheet number not identified"
