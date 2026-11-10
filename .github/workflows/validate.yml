@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - "vector_takeoff.py"
+      - "framing_takeoff.py"
       - "tests/**"
       - ".github/workflows/validate.yml"
   pull_request:
     paths:
       - "vector_takeoff.py"
+      - "framing_takeoff.py"
       - "tests/**"
       - ".github/workflows/validate.yml"
   workflow_dispatch:
