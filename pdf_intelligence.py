@@ -269,7 +269,7 @@ header {{ padding: 24px; }} h1 {{ margin: 0 0 8px; font-size: 26px; }} .muted {{
 <p>This is a preliminary extraction report. Verify every sheet against the original PDF before takeoff.</p></header>
 <section class="summary"><div><strong>Pages by likely discipline</strong><ul>{category_rows}</ul></div>
 <div><strong>Pages flagged for OCR / visual review</strong><p>{escape(str(summary["pages_needing_ocr_or_visual_review"]) if summary["pages_needing_ocr_or_visual_review"] else "None")}</p></div>
-<div><strong>Text recognition indicators</strong><p>Sheet numbers found: {summary["pages_with_sheet_numbers"]}<br>Pages with dimension-like strings: {summary["pages_with_dimension_tokens"]}</p></div></section>
+<div><strong>Text recognition indicators</strong><p>Sheet numbers found: {summary.get("pages_with_sheet_numbers", 0)}<br>Pages with dimension-like strings: {summary.get("pages_with_dimension_tokens", 0)}</p></div></section>
 <section aria-label="Page-by-page review">{"".join(cards)}</section>
 <section class="limits"><strong>Important limitations</strong><ul>{limitations}</ul></section>
 </main></body></html>"""
