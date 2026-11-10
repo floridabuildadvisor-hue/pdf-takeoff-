@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from html import escape
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -202,6 +203,114 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
     }
 
 
+
+def build_html_report(
+    report: dict[str, Any],
+    rendered_pages: dict[str, str] | None = None,
+) -> str:
+    """Build a self-contained visual review page with links to rendered sheets."""
+    rendered_pages = rendered_pages or {}
+    summary = report["summary"]
+    category_rows = "".join(
+        f"<li><strong>{escape(category.replace('_', ' ').title())}</strong>: {count}</li>"
+        for category, count in summary["pages_by_classification"].items()
+    )
+    cards = []
+    for page in report["pages"]:
+        number = page["page_number"]
+        image_path = rendered_pages.get(str(number))
+        image_html = (
+            f'<a href="{escape(image_path, quote=True)}"><img src="{escape(image_path, quote=True)}" '
+            f'alt="Rendered PDF page {number}"></a>'
+            if image_path else '<div class="no-image">Page image not rendered</div>'
+        )
+        classification = page["classification"]
+        dimensions = page["dimensions"]
+        status = "Needs OCR / visual review" if page["likely_scanned"] else "Text extracted — verify visually"
+        tokens = ", ".join(page["dimension_tokens"]) or "No dimension-like text tokens found"
+        preview = page["text_preview"] or "No embedded text extracted"
+        sheet = page["sheet_number"] or "Sheet number not identified"
+        cards.append(
+            f'<article class="page-card"><div class="page-image">{image_html}</div>'
+            f'<div class="page-info"><h2>Page {number} · {escape(sheet)}</h2>'
+            f'<p><strong>Classification:</strong> {escape(classification["category"].replace("_", " ").title())} '
+            f'({escape(classification["confidence"])} confidence)</p>'
+            f'<p><strong>Evidence:</strong> {escape(", ".join(classification["evidence"]) or "None")}</p>'
+            f'<p><strong>Page size:</strong> {dimensions["width_in"]} × {dimensions["height_in"]} in '
+            f'({escape(dimensions["orientation"])}) · rotation {page["rotation_degrees"]}°</p>'
+            f'<p><strong>Extracted text:</strong> {page["text_char_count"]} characters · '
+            f'{escape(status)}</p><p><strong>Dimension-like strings:</strong> {escape(tokens)}</p>'
+            f'<details><summary>Text preview</summary><pre>{escape(preview)}</pre></details>'
+            f'</div></article>'
+        )
+    limitations = "".join(f"<li>{escape(item)}</li>" for item in report["limitations"])
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF drawing diagnostics — {escape(report["source_file"])}</title>
+<style>
+:root {{ color-scheme: light; font-family: Inter, Arial, sans-serif; color: #18212f; background: #f3f5f7; }}
+body {{ margin: 0; padding: 28px; }} main {{ max-width: 1440px; margin: auto; }}
+header, .summary, .page-card, .limits {{ background: white; border: 1px solid #dce2e8; border-radius: 12px; }}
+header {{ padding: 24px; }} h1 {{ margin: 0 0 8px; font-size: 26px; }} .muted {{ color: #657181; }}
+.summary {{ margin: 18px 0; padding: 20px; display: flex; gap: 36px; flex-wrap: wrap; }}
+.summary ul, .limits ul {{ margin: 8px 0 0; padding-left: 20px; }}
+.page-card {{ display: grid; grid-template-columns: minmax(260px, 42%) 1fr; gap: 22px; padding: 18px; margin: 14px 0; }}
+.page-image {{ background: #e8edf2; border-radius: 8px; padding: 8px; text-align: center; }}
+.page-image img {{ display: block; max-width: 100%; max-height: 680px; width: auto; height: auto; margin: auto; }}
+.no-image {{ padding: 80px 10px; color: #657181; }} .page-info h2 {{ margin-top: 0; font-size: 19px; }}
+.page-info p {{ line-height: 1.45; }} pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #f6f8fa; padding: 12px; border-radius: 6px; }}
+.limits {{ padding: 18px; margin-top: 20px; }} @media (max-width: 760px) {{ body {{ padding: 12px; }} .page-card {{ grid-template-columns: 1fr; }} }}
+</style>
+</head>
+<body><main>
+<header><h1>PDF Drawing Diagnostics</h1><div class="muted">{escape(report["source_file"])} · {report["page_count"]} page(s)</div>
+<p>This is a preliminary extraction report. Verify every sheet against the original PDF before takeoff.</p></header>
+<section class="summary"><div><strong>Pages by likely discipline</strong><ul>{category_rows}</ul></div>
+<div><strong>Pages flagged for OCR / visual review</strong><p>{escape(str(summary["pages_needing_ocr_or_visual_review"]) if summary["pages_needing_ocr_or_visual_review"] else "None")}</p></div>
+<div><strong>Text recognition indicators</strong><p>Sheet numbers found: {summary["pages_with_sheet_numbers"]}<br>Pages with dimension-like strings: {summary["pages_with_dimension_tokens"]}</p></div></section>
+<section aria-label="Page-by-page review">{"".join(cards)}</section>
+<section class="limits"><strong>Important limitations</strong><ul>{limitations}</ul></section>
+</main></body></html>"""
+
+
+def render_pdf_pages(
+    pdf_path: str | Path,
+    output_dir: str | Path,
+    dpi: int = 100,
+) -> list[Path]:
+    """Render all pages to PNG thumbnails for the HTML diagnostic report."""
+    if isinstance(dpi, bool) or not isinstance(dpi, int) or dpi <= 0:
+        raise ValueError("dpi must be a positive integer")
+    try:
+        import pypdfium2 as pdfium
+    except ImportError as exc:
+        raise RuntimeError(
+            "PDF rendering requires pypdfium2. Install dependencies with "
+            "'python -m pip install -r requirements.txt'."
+        ) from exc
+
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    document = pdfium.PdfDocument(str(pdf_path))
+    rendered: list[Path] = []
+    try:
+        for page_index in range(len(document)):
+            page = document[page_index]
+            try:
+                image = page.render(scale=dpi / 72).to_pil().convert("RGB")
+                image_path = destination / f"page-{page_index + 1:03d}.png"
+                image.save(image_path, format="PNG")
+                rendered.append(image_path)
+            finally:
+                if hasattr(page, "close"):
+                    page.close()
+    finally:
+        document.close()
+    return rendered
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("pdf", type=Path, help="Client construction plan PDF")
@@ -213,15 +322,26 @@ def main() -> None:
         "--min-text-chars", type=int, default=20,
         help="Pages with fewer non-whitespace extracted characters are flagged for OCR/review",
     )
+    parser.add_argument(
+        "--dpi", type=int, default=100,
+        help="Resolution for page previews in the HTML report (default: 100 DPI)",
+    )
     args = parser.parse_args()
 
     report = analyze_pdf(args.pdf, min_text_chars=args.min_text_chars)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+    rendered = render_pdf_pages(args.pdf, args.output.parent / "pages", dpi=args.dpi)
+    rendered_map = {str(index + 1): f"pages/{path.name}" for index, path in enumerate(rendered)}
+    html_path = args.output.with_suffix(".html")
+    html_path.write_text(build_html_report(report, rendered_map), encoding="utf-8")
+
     print(f"Analyzed {report['page_count']} page(s) from {args.pdf}")
     print(f"Pages by classification: {report['summary']['pages_by_classification']}")
     print(f"Pages flagged for OCR/visual review: {report['summary']['pages_needing_ocr_or_visual_review']}")
-    print(f"Diagnostic report: {args.output}")
+    print(f"JSON report: {args.output}")
+    print(f"Visual HTML report: {html_path}")
     print("Review the source drawings before relying on extracted text or classifications.")
 
 
