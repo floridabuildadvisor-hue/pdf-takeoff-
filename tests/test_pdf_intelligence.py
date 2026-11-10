@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from pdf_intelligence import (
     analyze_pdf,
+    build_html_report,
     classify_sheet,
     extract_dimension_tokens,
     extract_sheet_number,
@@ -42,6 +43,30 @@ class DrawingTextExtractionTests(unittest.TestCase):
 
 
 class PdfAnalysisTests(unittest.TestCase):
+    def test_html_report_escapes_text_and_links_rendered_pages(self):
+        report = {
+            "source_file": "<client>.pdf",
+            "page_count": 1,
+            "summary": {"pages_by_classification": {"architectural": 1}},
+            "pages": [{
+                "page_number": 1,
+                "dimensions": {"width_in": 24, "height_in": 36, "orientation": "portrait"},
+                "rotation_degrees": 0,
+                "text_char_count": 42,
+                "likely_scanned": False,
+                "review_status": "text_extracted_visual_review_required",
+                "sheet_number": "A-101",
+                "classification": {"category": "architectural", "confidence": "high", "evidence": ["floor plan"]},
+                "dimension_tokens": ['24\'-0"'],
+                "text_preview": "<script>alert(1)</script>",
+            }],
+            "limitations": [],
+        }
+        html = build_html_report(report, {"1": "pages/page-001.png"})
+        self.assertIn("pages/page-001.png", html)
+        self.assertIn("&lt;client&gt;.pdf", html)
+        self.assertNotIn("<script>alert(1)</script>", html)
+
     def test_analyzes_pages_and_flags_image_only_page(self):
         class FakeTextPage:
             def __init__(self, text):
