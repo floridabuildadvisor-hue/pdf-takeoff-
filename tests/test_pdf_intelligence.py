@@ -53,7 +53,7 @@ class PdfAnalysisTests(unittest.TestCase):
                 "dimensions": {"width_in": 24, "height_in": 36, "orientation": "portrait"},
                 "rotation_degrees": 0,
                 "text_char_count": 42,
-                "likely_scanned": False,
+                "low_text_content": False,
                 "review_status": "text_extracted_visual_review_required",
                 "sheet_number": "A-101",
                 "classification": {"category": "architectural", "confidence": "high", "evidence": ["floor plan"]},
@@ -124,8 +124,8 @@ class PdfAnalysisTests(unittest.TestCase):
         self.assertEqual(report["metadata"]["Title"], "Sample Plan Set")
         self.assertEqual(report["pages"][0]["sheet_number"], "A-101")
         self.assertEqual(report["pages"][0]["classification"]["category"], "architectural")
-        self.assertFalse(report["pages"][0]["likely_scanned"])
-        self.assertTrue(report["pages"][1]["likely_scanned"])
+        self.assertFalse(report["pages"][0]["low_text_content"])
+        self.assertTrue(report["pages"][1]["low_text_content"])
         self.assertEqual(report["pages"][1]["review_status"], "needs_ocr_or_visual_review")
 
 
