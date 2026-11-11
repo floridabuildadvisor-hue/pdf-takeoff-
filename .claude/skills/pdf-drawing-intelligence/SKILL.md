@@ -2,7 +2,8 @@
 name: pdf-drawing-intelligence
 description: >-
   Use when working in the pdf-takeoff- repository on anything that reads client
-  construction PDFs: pdf_intelligence.py, the output/pdf_diagnostics reports,
+  construction PDFs or computes quantities: pdf_intelligence.py, vector_takeoff.py
+  framing helpers, TAKEOFF_METHOD.md, the output/pdf_diagnostics reports,
   sheet classification, sheet numbers, dimension strings, low-text or scanned
   pages, OCR, page rendering, geometry, scale, symbols, or takeoff quantities.
   Also use before planning, changing, reviewing, or testing code in this repo.
@@ -13,9 +14,10 @@ description: >-
 Project knowledge for the "PDF Drawing Intelligence" milestone. Read this file before any
 work in this repo, then go to section 18.
 
-**Verified baseline:** `main` at `7f03e37` (merge of PR #2), checked 2026-11-10 against the
-code, the test run, and real-PDF runs. If `git log -1 origin/main` shows a newer commit,
-re-check every status below against the code before relying on it.
+**Verified baseline:** `main` at `35e9194`, checked 2026-11-10 against the code and the test
+run. `pdf_intelligence.py` and `visual_inspect.py` have not changed since `7f03e37` (the merge
+of PR #2), so the real-PDF runs done on that commit still apply. If `git log -1 origin/main`
+shows a newer commit, re-check every status below against the code before relying on it.
 
 **Status labels** (based only on code that was read and run):
 
@@ -38,7 +40,7 @@ review material for a takeoff estimator. The current milestone is a **diagnostic
 inventories each page of a plan set: size, rotation, embedded text, sheet number,
 dimension-like strings, and a likely discipline. It then flags pages that need OCR or visual
 review, and writes JSON and HTML reports with page previews. It does **not** measure
-quantities yet.
+quantities from the PDF yet.
 
 The repo is public on GitHub: `floridabuildadvisor-hue/pdf-takeoff-`. Don't commit client
 PDFs, client names, or generated reports.
@@ -55,6 +57,11 @@ PDFs, client names, or generated reports.
   "meets code", "structurally adequate", "certified", "approved" or "engineered". Use
   "extracted", "measured", "flagged for review" or "as printed on sheet X".
 - A takeoff is a **measured inventory with traceability**. It is not a design opinion.
+- **The takeoff method lives in [`TAKEOFF_METHOD.md`](../../../TAKEOFF_METHOD.md)** at the
+  repo root. It covers the auditable BOQ line format, clickable plan markup, visual
+  verification rules, written-dimension checks, the `drawings.md` sheet index, the
+  verification loop and verified examples. Follow it for any output that reaches the
+  estimator. It is the owner's document, so change it only at the owner's request.
 
 **Business boundaries (non-negotiable):**
 - Takeoff and estimating services only. No purchasing and no supplier ordering.
@@ -91,11 +98,15 @@ The repo is a flat layout at the root: no package, no `pyproject.toml`, no `setu
 ```
 pdf_intelligence.py        # milestone CLI: analyze -> JSON -> render PNGs -> HTML
 visual_inspect.py          # older starter: render PNGs + OpenCV template-match candidates
-vector_takeoff.py          # distance_feet(): vector distance / supplied scale
+vector_takeoff.py          # scale + framing math helpers (no PDF reading)
+TAKEOFF_METHOD.md          # the owner's takeoff method (see section 2)
+README.md                  # short overview + planned workflow; no CLI usage any more
 tests/test_pdf_intelligence.py   # 7 tests (pypdfium2 mocked)
-tests/test_vector_takeoff.py     # 4 tests
+tests/test_vector_takeoff.py     # 7 tests
 .github/workflows/validate.yml   # unittest on Python 3.11, path-filtered
+.github/copilot-instructions.md  # instructions for GitHub Copilot (out of date, see section 14)
 requirements.txt           # numpy, opencv-python-headless, pypdfium2 (unpinned)
+pdf-takeoff-               # stray gitlink to another repo, empty on checkout (see section 14)
 ```
 
 The PDF engine is **pypdfium2**. `pdf_intelligence.py` imports it lazily inside its functions,
@@ -108,7 +119,7 @@ so the module imports with the standard library only and tests can mock it via
 |---|---|---|
 | `pdf_intelligence.py` | Page inventory, text extraction, classification, JSON/HTML reports, page previews | IMPLEMENTED (limits in section 14) |
 | `visual_inspect.py` | Renders pages to `output/rendered/` (200 DPI default). Optionally marks template-match **candidates** from a cropped symbol image. | Rendering IMPLEMENTED (ran on a real PDF; needs Pillow). Template matching NOT VERIFIED. No tests, not in CI path filter. |
-| `vector_takeoff.py` | `distance_feet(start, end, drawing_units_per_foot)`. Scale must be supplied and is validated as positive and finite. | IMPLEMENTED + tested. Not connected to any PDF extraction. |
+| `vector_takeoff.py` | `distance_feet` and `polyline_length_feet` (drawing units divided by a supplied scale), `deduct_openings`, `stud_count` (regular spacing plus both wall ends; no corners, openings or built-up posts), `plate_length_feet` (length times plate count, no waste allowance). Every input is validated. | IMPLEMENTED + tested (7 tests). Not connected to any PDF extraction: callers pass in points, lengths and the scale. |
 
 Function signatures are listed in the docs file. Inside `pdf_intelligence.py`, the concerns are
 already separate functions: parsing (`analyze_pdf`), extraction (`extract_sheet_number`,
@@ -138,7 +149,7 @@ and presentation (`build_html_report`, `render_pdf_pages`).
 
 If step 5 fails, the JSON exists but the HTML and PNGs do not.
 
-## 8. Current capabilities (verified on `main` @ 7f03e37)
+## 8. Current capabilities (`pdf_intelligence.py`, unchanged from 7f03e37 to 35e9194)
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -166,8 +177,9 @@ If step 5 fails, the JSON exists but the HTML and PNGs do not.
 
 All items below are **PLANNED**. Check the code before assuming any of them exists.
 
-- **Geometry:** lines, polylines, closed shapes, boundaries, rooms, walls, openings, regions,
-  and the spatial relationships between them.
+- **Geometry:** reading lines, polylines, closed shapes, boundaries, rooms, walls, openings,
+  regions, and the spatial relationships between them out of the PDF. (The math helpers in
+  `vector_takeoff.py` exist; extracting the geometry they need does not.)
 - **Dimensions and scale:** linear, overall, partial and elevation dimensions, and dimension
   strings, keeping units and references. Scale comes from the sheet or detail and is
   confirmed against drawn lengths. **Never silently assume a scale.** If the scale is
@@ -200,7 +212,9 @@ All items below are **PLANNED**. Check the code before assuming any of them exis
   needs no extra dependencies.
 - The HTML report is self-contained, links relative `pages/page-NNN.png` files, and escapes
   every PDF-derived string (`ed924f8` and `49c4591` made it tolerate partial summaries).
-- `vector_takeoff.distance_feet` refuses to run without an explicit, valid scale.
+- The `vector_takeoff.py` helpers refuse to run without an explicit, valid scale or length,
+  and their docstrings name what they leave out (for example, `stud_count` ignores corners,
+  openings and built-up posts). Keep stating those gaps.
 
 **Lessons from related prior work. These are NOT implemented in this repo.** They come from a
 real 15-sheet residential permit-set takeoff done with PyMuPDF in the separate
@@ -223,11 +237,14 @@ the owner asks.
 - **Framework:** standard-library `unittest`. There is no pytest and no test config file. Tests
   live in `tests/` and import modules from the repo root.
 - **Command (from the repo root):** `python3 -m unittest discover -s tests -v`
-- **Baseline:** 11 tests pass. That is 7 in `test_pdf_intelligence.py` and 4 in
+- **Baseline:** 14 tests pass at `35e9194`. That is 7 in `test_pdf_intelligence.py` and 7 in
   `test_vector_takeoff.py`, run on Python 3.9.6 locally on 2026-11-10. CI runs Python 3.11.
 - **Coverage today:** classification (3 tests), sheet number (1), dimension tokens (1), HTML
   escaping and preview links (1), and `analyze_pdf` with a mocked 2-page document (1), plus
-  `distance_feet` (4).
+  the `vector_takeoff.py` helpers (7).
+- **Verified examples:** `TAKEOFF_METHOD.md` section 9 asks for sample drawings with
+  known-good answers. None are in the repo yet. The repo is public, so use synthetic plans
+  or plans cleared for sharing, and label them as non-project data.
 - **Main gaps:** no real PDF fixture, no test for rendering or the CLI, no rotated-page, corrupt
   or encrypted PDF test, and no `visual_inspect.py` tests. The full matrix is in the docs file.
 - **Future tests must cover:** valid and invalid PDFs, multi-page sets, rotated pages (90, 180,
@@ -263,8 +280,8 @@ Outputs, all relative to the JSON path:
 - page previews at `<json dir>/pages/page-001.png` and onward.
 
 Paths are relative to the current directory. `.gitignore` does not exclude `output/`, so
-never `git add` generated reports. The README's multi-line example ends lines with `\\`,
-which breaks if pasted into a shell. Use a single `\` or one line.
+never `git add` generated reports. The README stopped documenting CLI usage in `f19622f`, so
+the commands in this section are the reference.
 
 Other tools:
 
@@ -295,6 +312,12 @@ python3 visual_inspect.py plans.pdf --template crop.png --threshold 0.82
 - CI only runs mocked tests. Real pypdfium2 behavior is never exercised in CI.
 - CI path filter: changes to `visual_inspect.py`, `requirements.txt`, `README.md`, `docs/`
   or `.claude/` do **not** trigger CI.
+- **Stray gitlink:** `35e9194` added `pdf-takeoff-` as a gitlink (mode 160000) pointing at
+  commit `b2587d8` of another repo, with no `.gitmodules`. Checkouts get an empty folder.
+  It looks accidental. Removing it is the owner's call.
+- **Copilot instructions are out of date:** `.github/copilot-instructions.md` describes only
+  `visual_inspect.py` and `distance_feet`. It does not mention `pdf_intelligence.py`, the
+  framing helpers or `TAKEOFF_METHOD.md`, and its test commands use `python`, not `python3`.
 
 ## 15. Development conventions
 
@@ -328,10 +351,15 @@ python3 visual_inspect.py plans.pdf --template crop.png --threshold 0.82
   The TDD order is visible in history: a `test:` commit comes before its `feat:` commit.
 - PR #2 (`feature/pdf-drawing-intelligence`, 12 commits) was **merged** on 2026-11-10 as
   `7f03e37`. Keep that history and branch.
+- Three commits then went straight to `main` without a PR: `f19622f` (TAKEOFF_METHOD.md and
+  the README rewrite), `0534008` (framing helpers and tests) and `35e9194` (Copilot
+  instructions and the stray gitlink).
 - PR #1 (`feature/wall-plate-takeoff`: `framing_takeoff.py`, wall-plate LF with a 5% default
   waste allowance, and a stock-length cutting planner) is **open, not merged**. That code is
-  not on `main`. Its cutting planner optimizes against supplier stock lengths, which touches
-  the "no supplier stock optimization" boundary. Whether it merges is the owner's call.
+  not on `main`. `main` now has its own `plate_length_feet` with no waste allowance, so
+  compare the two before merging anything. PR #1's cutting planner optimizes against
+  supplier stock lengths, which touches the "no supplier stock optimization" boundary.
+  Whether it merges is the owner's call.
 - Never overwrite uncommitted work. Never stash, reset or force-push without explicit
   approval.
 - Changes the CI path filter skips need a manual test run, and the PR must report it.
@@ -340,6 +368,7 @@ python3 visual_inspect.py plans.pdf --template crop.png --threshold 0.82
 
 1. Robustness: add Pillow to requirements, a clean error for corrupt PDFs, and a real-PDF test
    fixture. Make `output/` git-ignored, which needs the owner's OK.
+   Start the verified-example set from `TAKEOFF_METHOD.md` section 9.
 2. Fix the extraction fidelity issues in section 14: Unicode feet and inch marks, decimal
    sheet IDs, filtering scale notes. Each fix starts with a failing test.
 3. Per-item provenance model: source, page, sheet, method, location, confidence and
@@ -354,7 +383,8 @@ python3 visual_inspect.py plans.pdf --template crop.png --threshold 0.82
 
 Before any feature, fix or review:
 
-1. Read this SKILL.md, plus the docs file if you touch the schema or tests.
+1. Read this SKILL.md and `TAKEOFF_METHOD.md`, plus the docs file if you touch the schema
+   or tests.
 2. Inspect the repo: `git status`, branch, `git log --oneline -15 origin/main`, open PRs.
 3. Review the relevant code and tests. Don't trust this file over the code.
 4. Find related decisions in commit messages, PR bodies and section 10.
@@ -364,7 +394,8 @@ Before any feature, fix or review:
 8. Implement incrementally, in small commits.
 9. Add or update tests first (TDD), and never delete tests.
 10. Run `python3 -m unittest discover -s tests -v` and report the actual count.
-11. Update docs: README, this skill's status tables, and the report's `limitations` list.
+11. Update docs: README, this skill's status tables, `.github/copilot-instructions.md`, and
+    the report's `limitations` list.
 12. Report the changed files, test results and remaining limitations.
 
 **Rules for every session:**

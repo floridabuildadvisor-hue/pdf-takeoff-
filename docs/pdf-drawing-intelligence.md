@@ -2,8 +2,9 @@
 
 This is the supporting reference for the project skill at
 [`.claude/skills/pdf-drawing-intelligence/SKILL.md`](../.claude/skills/pdf-drawing-intelligence/SKILL.md).
-Everything here was checked against `main` at `7f03e37` on 2026-11-10. Re-check it if the
-code has changed since then.
+Everything here was checked on 2026-11-10. `pdf_intelligence.py` and `visual_inspect.py`
+were checked at `7f03e37`, and they are unchanged at `35e9194`. `vector_takeoff.py` and the
+test count were checked at `35e9194`. Re-check them if the code has changed since then.
 
 ## 1. JSON report, `schema_version` "1.0"
 
@@ -60,6 +61,16 @@ CLI flags: `pdf` (positional), `--output` (default `output/pdf_diagnostics/repor
 `--template`, `--threshold` (0.82, must be 0 to 1), `--max-matches` (200). It imports `cv2`,
 `numpy` and `pypdfium2` at module load.
 
+`vector_takeoff.py` (at `35e9194`), standard library only:
+
+| Function | Behavior | Raises `ValueError` when |
+|---|---|---|
+| `distance_feet(start, end, drawing_units_per_foot)` | Straight-line distance divided by the scale | a point doesn't have exactly 2 finite coordinates, or the scale is not positive and finite |
+| `polyline_length_feet(points, drawing_units_per_foot)` | Sum of the segment lengths. Fewer than 2 points gives 0. | same as above |
+| `deduct_openings(length_ft, opening_lengths_ft)` | Length minus the sum of the openings | a value is negative or not finite, or the openings exceed the length |
+| `stud_count(length_ft, spacing_ft)` | `ceil(length / spacing) + 1`, and 0 for a zero length. No corners, openings or posts. | length < 0, spacing ≤ 0, or not finite |
+| `plate_length_feet(length_ft, plate_count=2)` | Length times plate count. No waste allowance. | length < 0 or not finite, or plate count not a positive int (a bool is rejected) |
+
 ## 3. Verification log, 2026-11-10
 
 Environment: macOS, system Python 3.9.6, a fresh venv with `pip install -r requirements.txt`.
@@ -68,7 +79,8 @@ Pillow**.
 
 | Check | Result |
 |---|---|
-| `python3 -m unittest discover -s tests -v` | 11 tests, all pass |
+| `python3 -m unittest discover -s tests -v` at `7f03e37` | 11 tests, all pass |
+| Same command at `35e9194` | 14 tests, all pass |
 | CLI on a synthetic 3-page PDF (text page, blank page, 36x24 in page with `/Rotate 90`), requirements only | JSON written, then `ModuleNotFoundError: No module named 'PIL'`. No HTML, no PNGs, exit 1. |
 | Same run after `pip install pillow` (11.3.0) | Exit 0. `report.json`, `report.html`, `pages/page-001..003.png`. |
 | Page 2 (no text) | `low_text_content` true, `needs_ocr_or_visual_review`, `unknown` |
@@ -104,7 +116,13 @@ The edge-case probe of the extraction functions gave these results:
 | | `test_extracts_dimension_strings_without_converting_them` | `24'-6"`, `36"` kept as printed |
 | | `test_html_report_escapes_text_and_links_rendered_pages` | escaping, preview link |
 | | `test_analyzes_pages_and_flags_image_only_page` | mocked 2-page doc, metadata, low-text flag, `review_status` |
-| `test_vector_takeoff.py` | 4 tests | `distance_feet` math, invalid scale, invalid points |
+| `test_vector_takeoff.py` | `test_converts_distance_using_drawing_scale` | `distance_feet` |
+| | `test_polyline_sums_segment_lengths` | `polyline_length_feet` |
+| | `test_deducts_openings` | `deduct_openings` |
+| | `test_rejects_openings_larger_than_wall` | openings larger than the wall |
+| | `test_stud_count_includes_both_wall_ends` | `stud_count` |
+| | `test_plate_length_uses_plate_count` | `plate_length_feet` |
+| | `test_rejects_invalid_inputs` | bad scales (0, -1, inf, nan), a negative stud length, a negative opening, a plate count of 0. Invalid points are no longer tested. |
 
 ## 5. Test gap matrix
 
