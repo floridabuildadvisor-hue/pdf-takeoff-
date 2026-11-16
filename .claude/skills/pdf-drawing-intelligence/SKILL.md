@@ -405,20 +405,33 @@ Before any feature, fix or review:
 - If a change falls outside the request or outside section 2's boundaries, say so and explain
   why before making it.
 
-**Project subagents** live in `.claude/agents/` and follow this skill:
+**Project subagents** live in `.claude/agents/`. The rulebook they all follow is
+[`docs/agent-system.md`](../../../docs/agent-system.md): the five stages, the planning block,
+who gets delegated what, the quality gates, the three review levels and the reviewer
+checklist.
 
-| Subagent | Use it for | Tools |
+**Start every request with [`project-orchestrator`](../../agents/project-orchestrator.md).**
+It understands the request, picks the specialists, sequences them, checks their results
+against the gates, and gives the owner one decision before anything is changed or published.
+
+| Subagent | Role | Writes files? |
 |---|---|---|
-| [`pdf-drawing-specialist`](../../agents/pdf-drawing-specialist.md) | How pages, text, geometry, dimensions and scale come out of the PDF, and extraction that looks wrong | Can edit |
-| [`qa-test-runner`](../../agents/qa-test-runner.md) | Writing the failing test first, running the real suite and reporting the actual counts | Can edit tests |
-| [`architect-reviewer`](../../agents/architect-reviewer.md) | Module boundaries, dependencies, JSON and CLI compatibility, needless rewrites | Read-only (Bash for git only) |
-| [`takeoff-domain-reviewer`](../../agents/takeoff-domain-reviewer.md) | Traceability, business boundaries, estimator wording, human verification | Read-only |
+| [`project-orchestrator`](../../agents/project-orchestrator.md) | Intake, plan, assignments, dependencies, deadlines, gates, one decision | No |
+| [`pdf-drawing-specialist`](../../agents/pdf-drawing-specialist.md) | PDF extraction, sheet index, OCR flags, scale and unit detection | Yes |
+| [`architectural-plan-reviewer`](../../agents/architectural-plan-reviewer.md) | Floor plans, elevations, sections, doors, windows, finishes | Project files only |
+| [`structural-plan-reviewer`](../../agents/structural-plan-reviewer.md) | Foundations, concrete, rebar, steel, framing | Project files only |
+| [`mep-civil-reviewer`](../../agents/mep-civil-reviewer.md) | Mechanical, electrical, plumbing and civil scope | Project files only |
+| [`quantity-takeoff-agent`](../../agents/quantity-takeoff-agent.md) | Linear, area, volume, count and assembly quantities | Project files only |
+| [`cost-estimator`](../../agents/cost-estimator.md) | Material, labor, equipment, subcontractor and pricing | Project files only |
+| [`senior-estimator-reviewer`](../../agents/senior-estimator-reviewer.md) | Independent quantity and cost review (Level 2) | No |
+| [`qa-compliance-reviewer`](../../agents/qa-compliance-reviewer.md) | Completeness, consistency, formulas, traceability (Level 3) | No |
+| [`report-proposal-specialist`](../../agents/report-proposal-specialist.md) | BOQ, estimate, exclusions, assumptions and the final PDF | Project files only |
+| [`architect-reviewer`](../../agents/architect-reviewer.md) | Software architecture: system design, data flow, API and CLI contracts, performance | No |
+| [`qa-test-runner`](../../agents/qa-test-runner.md) | Failing test first, the real suite, the actual counts | Tests |
+| [`takeoff-domain-reviewer`](../../agents/takeoff-domain-reviewer.md) | Business boundaries and estimator wording | No |
 
-For a code change:
-1. Write the failing test with `qa-test-runner`, or with `pdf-drawing-specialist` for PDF
-   work.
-2. Implement.
-3. Rerun `qa-test-runner`.
-4. Run `architect-reviewer` and `takeoff-domain-reviewer` before you show the owner the diff.
+Status: the subagents are a way of working. They add no code capability, and they have not
+been run on a real plan set (NOT VERIFIED). A quantity an agent reads from a drawing is
+unverified until the estimator checks it.
 
-None of them commits, pushes or opens PRs.
+No subagent commits, pushes, opens PRs, sends, delivers or authorizes. The owner does.
