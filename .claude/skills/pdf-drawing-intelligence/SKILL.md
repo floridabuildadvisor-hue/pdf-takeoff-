@@ -404,3 +404,21 @@ Before any feature, fix or review:
 - Don't assume a PLANNED feature exists.
 - If a change falls outside the request or outside section 2's boundaries, say so and explain
   why before making it.
+
+**Project subagents** live in `.claude/agents/` and follow this skill:
+
+| Subagent | Use it for | Tools |
+|---|---|---|
+| [`pdf-drawing-specialist`](../../agents/pdf-drawing-specialist.md) | How pages, text, geometry, dimensions and scale come out of the PDF, and extraction that looks wrong | Can edit |
+| [`qa-test-runner`](../../agents/qa-test-runner.md) | Writing the failing test first, running the real suite and reporting the actual counts | Can edit tests |
+| [`architect-reviewer`](../../agents/architect-reviewer.md) | Module boundaries, dependencies, JSON and CLI compatibility, needless rewrites | Read-only (Bash for git only) |
+| [`takeoff-domain-reviewer`](../../agents/takeoff-domain-reviewer.md) | Traceability, business boundaries, estimator wording, human verification | Read-only |
+
+For a code change:
+1. Write the failing test with `qa-test-runner`, or with `pdf-drawing-specialist` for PDF
+   work.
+2. Implement.
+3. Rerun `qa-test-runner`.
+4. Run `architect-reviewer` and `takeoff-domain-reviewer` before you show the owner the diff.
+
+None of them commits, pushes or opens PRs.
