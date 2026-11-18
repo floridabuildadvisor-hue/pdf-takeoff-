@@ -15,6 +15,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from stacked_fractions import page_text_with_fractions
+
 
 _CLASSIFICATION_TERMS = {
     "architectural": (
@@ -206,7 +208,9 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
                 width_pt, height_pt = page.get_size()
                 rotation = page.get_rotation() if hasattr(page, "get_rotation") else 0
                 text_page = page.get_textpage()
-                extracted_text = text_page.get_text_range() or ""
+                extracted_text = page_text_with_fractions(
+                    text_page, text_page.get_text_range() or "",
+                )
                 char_count = len(re.sub(r"\s+", "", extracted_text))
                 low_text_content = char_count < min_text_chars
                 pages.append({
@@ -251,7 +255,9 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
             "Sheet classification is keyword-based and must be checked against the drawing.",
             "Dimension tokens are returned as printed strings and are not interpreted or scale-verified.",
             "Scale notes are left out of dimension tokens and are not read or applied as a scale.",
-            "Stacked fractions can run together in extracted text (for example 1 1/2 read as 112); "
+            "Stacked fractions are reassembled from character positions (a 1 over a 2 is written 1/2). "
+            "A stack that cannot be read clearly is left run together (1 1/2 as 112), and text listed "
+            "out of order can separate a fraction from its whole inches; "
             "check fractional dimensions against the drawing.",
             "A sheet number with no SHEET or DWG label is taken from a lone code on its own line; "
             "check it against the title block.",

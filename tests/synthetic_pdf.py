@@ -83,6 +83,26 @@ def build_plan_set_pdf() -> bytes:
     return _assemble(_document_objects(_PLAN_SET_PAGES))
 
 
+def build_stacked_fraction_pdf() -> bytes:
+    """One page with 13'-1 1/2" drawn the way plan fonts stack the fraction."""
+    stream = (
+        b"BT /F1 24 Tf 72 500 Td (OVERALL 13'-1) Tj ET\n"
+        b"BT /F1 18 Tf 244 509 Td (1) Tj ET\n"
+        b"BT /F1 18 Tf 244 493 Td (2) Tj ET\n"
+        b"BT /F1 24 Tf 256 500 Td (\") Tj ET\n"
+        b"BT /F1 24 Tf 72 400 Td (SLAB 44'-0\") Tj ET\n"
+    )
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] "
+        b"/Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"endstream",
+    ]
+    return _assemble(objects)
+
+
 def build_password_protected_pdf() -> bytes:
     """A PDF whose encryption dictionary cannot be opened without a password."""
     objects = _document_objects(_PLAN_SET_PAGES[:1])

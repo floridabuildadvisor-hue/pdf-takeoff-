@@ -44,6 +44,11 @@ no geometry, no scale calibration and no quantities. Dimension strings are not c
 checked against scale, and the discipline guess is a keyword heuristic. Review every page
 against the original drawing before using the report.
 
+Stacked fractions are reassembled from character positions: a dimension drawn as 13'-1 with
+a small 1 over a small 2 is reported as `13'-1 1/2"`, not `13'-112"`. Only clear stacks that
+form a proper fraction of an inch are rewritten. Check fractional dimensions against the
+drawing.
+
 A damaged or password-protected PDF stops with a one-line `error:` message and exit code 1.
 
 ### Page rendering and symbol candidates (`visual_inspect.py`)
