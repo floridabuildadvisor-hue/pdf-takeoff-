@@ -38,37 +38,60 @@ def _same_size(first: float, second: float) -> bool:
     return abs(first - second) <= _SAME_SIZE * max(first, second)
 
 
-def _small_digit_run(chars: Sequence[Mapping[str, Any]], start: int) -> int:
-    """Return the end index of a run of smaller digits starting at start, or start."""
+def _skip_whitespace(chars: Sequence[Mapping[str, Any]], index: int, step: int) -> int:
+    """Move index past whitespace in the given direction (text extraction generates it)."""
+    while 0 <= index < len(chars) and chars[index]["char"].isspace():
+        index += step
+    return index
+
+
+def _small_digit_run(chars: Sequence[Mapping[str, Any]], start: int) -> tuple[list[int], int]:
+    """Find a run of smaller digits starting at start.
+
+    Returns the digit indexes and the index just past the run. Whitespace
+    between the digits is allowed, because extraction can put a space or a
+    line break between a numerator and its denominator. An empty list means
+    there is no such run at start.
+    """
     first = chars[start]
     if not first["char"].isdigit() or not _has_geometry(first):
-        return start
-    end = start
-    while (
-        end < len(chars) and chars[end]["char"].isdigit() and _has_geometry(chars[end])
-        and _same_size(chars[end]["size"], first["size"])
-    ):
-        end += 1
+        return [], start
+    digits = []
+    index = start
+    while index < len(chars):
+        candidate = _skip_whitespace(chars, index, 1)
+        if not (
+            candidate < len(chars) and chars[candidate]["char"].isdigit()
+            and _has_geometry(chars[candidate]) and _same_size(chars[candidate]["size"], first["size"])
+        ):
+            break
+        digits.append(candidate)
+        index = candidate + 1
+    end = digits[-1] + 1
 
-    before = chars[start - 1] if start > 0 else None
-    after = chars[end] if end < len(chars) else None
-    if before is not None and _has_geometry(before) and before["char"] in _DIMENSION_CHARS:
-        reference = before["size"]
-    elif after is not None and _has_geometry(after) and after["char"] in _INCH_MARKS:
-        reference = after["size"]
+    before = _skip_whitespace(chars, start - 1, -1)
+    after = _skip_whitespace(chars, end, 1)
+    if before >= 0 and _has_geometry(chars[before]) and chars[before]["char"] in _DIMENSION_CHARS:
+        reference = chars[before]["size"]
+    elif after < len(chars) and _has_geometry(chars[after]) and chars[after]["char"] in _INCH_MARKS:
+        reference = chars[after]["size"]
     else:
-        return start
-    return end if first["size"] < _SMALL_RATIO * reference else start
+        return [], start
+    if first["size"] < _SMALL_RATIO * reference:
+        return digits, end
+    return [], start
 
 
 def _reading_direction(chars: Sequence[Mapping[str, Any]], start: int, end: int) -> tuple[float, float]:
     """Unit vector along the baseline, taken from the main-size characters around the run."""
-    first = start
+    last = _skip_whitespace(chars, start - 1, -1)
+    first = last + 1
     while first > 0 and _has_geometry(chars[first - 1]) and chars[first - 1]["char"] in _DIMENSION_CHARS:
         first -= 1
-    anchors = [_center(chars[index]) for index in range(first, start)]
-    if end < len(chars) and _has_geometry(chars[end]):
-        anchors.append(_center(chars[end]))
+    anchors = [_center(chars[index]) for index in range(first, last + 1)]
+    after = _skip_whitespace(chars, end, 1)
+    if after < len(chars) and _has_geometry(chars[after]) and chars[after]["char"] in _INCH_MARKS:
+        anchors.append(_center(chars[after]))
     if len(anchors) >= 2:
         dx = anchors[-1][0] - anchors[0][0]
         dy = anchors[-1][1] - anchors[0][1]
@@ -78,14 +101,14 @@ def _reading_direction(chars: Sequence[Mapping[str, Any]], start: int, end: int)
     return (1.0, 0.0)
 
 
-def _fraction(chars: Sequence[Mapping[str, Any]], start: int, end: int) -> str | None:
-    """Return 'N/D' when the run is a numerator above a denominator, else None."""
-    if end - start < 2:
+def _fraction(chars: Sequence[Mapping[str, Any]], digits: list[int], end: int) -> str | None:
+    """Return 'N/D' when the digits are a numerator above a denominator, else None."""
+    if len(digits) < 2:
         return None
-    along = _reading_direction(chars, start, end)
+    along = _reading_direction(chars, digits[0], end)
     up = (-along[1], along[0])
     placed = []
-    for index in range(start, end):
+    for index in digits:
         cx, cy = _center(chars[index])
         placed.append((cx * up[0] + cy * up[1], cx * along[0] + cy * along[1], chars[index]["char"]))
     placed.sort()
@@ -94,12 +117,19 @@ def _fraction(chars: Sequence[Mapping[str, Any]], start: int, end: int) -> str |
     split = max(range(len(gaps)), key=gaps.__getitem__)
     glyph = min(
         max(chars[index]["box"][2] - chars[index]["box"][0], chars[index]["box"][3] - chars[index]["box"][1])
-        for index in range(start, end)
+        for index in digits
     )
     if gaps[split] < 0.5 * glyph:
         return None  # all on one level: a superscript or a small label, not a stack
 
     lower, upper = placed[: split + 1], placed[split + 1:]
+    # The two groups must share one slot along the baseline, not sit far apart.
+    slot_offset = abs(
+        sum(item[1] for item in upper) / len(upper) - sum(item[1] for item in lower) / len(lower)
+    )
+    if slot_offset > len(digits) * glyph:
+        return None
+
     numerator = "".join(char for _, _, char in sorted(upper, key=lambda item: item[1]))
     denominator = "".join(char for _, _, char in sorted(lower, key=lambda item: item[1]))
     if int(denominator) not in _DENOMINATORS or not 0 < int(numerator) < int(denominator):
@@ -111,20 +141,23 @@ def rebuild_stacked_fractions(chars: Sequence[Mapping[str, Any]]) -> str:
     """Join character records into text, writing stacked fractions as N/D.
 
     Each record has ``char``, ``box`` (left, bottom, right, top) and ``size``.
-    Records with no box or size pass through unchanged.
+    Records with no box or size pass through unchanged. Whitespace generated
+    inside a rebuilt fraction, or between it and its inch mark, is dropped.
     """
     pieces: list[str] = []
     index = 0
     while index < len(chars):
-        end = _small_digit_run(chars, index)
-        fraction = _fraction(chars, index, end) if end > index else None
+        digits, end = _small_digit_run(chars, index)
+        fraction = _fraction(chars, digits, end) if digits else None
         if fraction is None:
             pieces.append(chars[index]["char"])
             index += 1
             continue
-        after_digit = bool(pieces) and pieces[-1][-1:].isdigit()
-        pieces.append((" " if after_digit else "") + fraction)
-        index = end
+        if pieces and pieces[-1].isdigit():
+            pieces.append(" ")
+        pieces.append(fraction)
+        after = _skip_whitespace(chars, end, 1)
+        index = after if after < len(chars) and chars[after]["char"] in _INCH_MARKS else end
     return "".join(pieces)
 
 
