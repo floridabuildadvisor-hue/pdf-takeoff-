@@ -100,6 +100,30 @@ class DrawingTextExtractionTests(unittest.TestCase):
         self.assertEqual(extract_dimension_tokens(text), ["24'-6\"", '36"'])
 
 
+class BareTitleBlockCodeTests(unittest.TestCase):
+    def test_lone_code_on_its_own_line_is_the_sheet_number(self):
+        for code in ("C-1", "A-1", "A-6", "E-2", "T-6", "A1.01", "S201", "FP-3"):
+            text = f"GENERAL NOTES\n{code}\nPROJECT #: DRAWING: DATE:"
+            self.assertEqual(extract_sheet_number(text), code, code)
+
+    def test_repeated_occurrences_of_one_code_still_count_as_one(self):
+        self.assertEqual(extract_sheet_number("T-1\nTRUSS LAYOUT\nT-1"), "T-1")
+
+    def test_labeled_match_wins_over_a_bare_code(self):
+        self.assertEqual(extract_sheet_number("B-1\nFLOOR PLAN\nSHEET NO. A-101"), "A-101")
+
+    def test_code_inside_a_line_of_other_text_is_not_used(self):
+        for text in ("R-13 BATT INSULATION", "TYPE W-1 WINDOW", "A-1 FLOOR PLAN  A-2 ELEVATIONS"):
+            self.assertIsNone(extract_sheet_number(text), text)
+
+    def test_two_different_bare_codes_are_ambiguous_and_give_none(self):
+        self.assertIsNone(extract_sheet_number("B-1\nBEAM SCHEDULE\nT-2"))
+
+    def test_bare_numbers_and_long_codes_are_never_returned(self):
+        for text in ("7", "15\nFLOOR PLAN", "2024\n10-17-26", "NER-200", "12'-0\""):
+            self.assertIsNone(extract_sheet_number(text), text)
+
+
 class PdfAnalysisTests(unittest.TestCase):
     def test_html_report_escapes_text_and_links_rendered_pages(self):
         report = {
