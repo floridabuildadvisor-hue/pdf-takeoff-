@@ -1,4 +1,5 @@
 import math
+import time
 import unittest
 
 from framing_takeoff import calculate_plate_lf, plan_stock_cuts
@@ -48,6 +49,37 @@ class PlanStockCutsTests(unittest.TestCase):
             [cut for board in plan["boards"] for cut in board["cuts_ft"]],
             [6, 4, 3],
         )
+
+    def test_small_batch_uses_the_least_stock_footage(self):
+        # 6 on an 8 and 4 + 3 on an 8 is 16 LF; 6 + 4 on a 10 and 3 on an 8 is 18 LF.
+        plan = plan_stock_cuts([6, 4, 3], [8, 10])
+        self.assertAlmostEqual(plan["total_stock_lf"], 16)
+        self.assertAlmostEqual(plan["offcut_lf"], 3)
+
+    def test_equal_stock_footage_prefers_fewer_boards(self):
+        plan = plan_stock_cuts([4, 4], [4, 8])
+        self.assertAlmostEqual(plan["total_stock_lf"], 8)
+        self.assertEqual(len(plan["boards"]), 1)
+
+    def test_twelve_equal_cuts_are_planned_quickly(self):
+        started = time.perf_counter()
+        plan = plan_stock_cuts([7.5] * 12, [8, 10, 12, 14, 16])
+        elapsed = time.perf_counter() - started
+        self.assertLess(elapsed, 3, "repeated plate lengths are the usual case")
+        self.assertAlmostEqual(plan["total_stock_lf"], 96)
+        self.assertEqual(len(plan["boards"]), 6)
+        self.assertEqual(sum(len(board["cuts_ft"]) for board in plan["boards"]), 12)
+
+    def test_twelve_mixed_cuts_keep_the_least_stock_footage(self):
+        cuts = [11.5, 10.25, 9.75, 9, 8.5, 7.25, 6.5, 5.75, 4.5, 3.25, 2.5, 1.75]
+        plan = plan_stock_cuts(cuts, [8, 10, 12, 14, 16])
+        self.assertAlmostEqual(plan["total_stock_lf"], 82)
+        self.assertCountEqual([cut for board in plan["boards"] for cut in board["cuts_ft"]], cuts)
+
+    def test_kerf_is_charged_for_every_cut_including_the_last_on_a_board(self):
+        # Two 8 ft pieces do not come out of one 16 ft board once kerf is counted.
+        plan = plan_stock_cuts([8, 8], [16], kerf_ft=0.01)
+        self.assertEqual(len(plan["boards"]), 2)
 
     def test_accounts_for_saw_kerf(self):
         plan = plan_stock_cuts([5, 4], [10], kerf_ft=0.01)
