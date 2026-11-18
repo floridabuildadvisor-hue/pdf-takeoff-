@@ -47,9 +47,13 @@ _CLASSIFICATION_TERMS = {
     ),
 }
 
+# A sheet ID always starts with a discipline letter: A-101, S2.1, A1.01, FP-3.
+# A number on its own (a page count, a date, a note number) is never a sheet ID.
+_SHEET_ID = r"(?!NO[-.]?\d)[A-Z]{1,3}[-.]?\d{1,4}(?:\.\d{1,3})?[A-Z]?"
+
 _SHEET_NUMBER_RE = re.compile(
-    r"(?:SHEET(?:\s*(?:NO\.?|NUMBER))?|DWG\.?\s*NO\.?)"
-    r"\s*[:#-]?\s*([A-Z]{0,3}\s*[-.]?\s*\d{1,4}[A-Z]?)",
+    r"\b(?:SHEET(?:\s*(?:NO\b\.?|NUMBER\b))?|DWG\b\.?\s*NO\b\.?)"
+    rf"\s*[:#-]?\s*({_SHEET_ID})(?![A-Z0-9])",
     re.IGNORECASE,
 )
 
@@ -107,11 +111,11 @@ def classify_sheet(text: str) -> dict[str, Any]:
 
 
 def extract_sheet_number(text: str) -> str | None:
-    """Extract a sheet identifier only when it follows a recognized label."""
+    """Extract a sheet identifier, as printed, when it follows a recognized label."""
     match = _SHEET_NUMBER_RE.search(text)
     if not match:
         return None
-    return re.sub(r"\s+", "", match.group(1)).replace(".", "-")
+    return match.group(1)
 
 
 def extract_dimension_tokens(text: str) -> list[str]:
