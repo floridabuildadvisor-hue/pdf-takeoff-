@@ -159,6 +159,22 @@ def _page_dimensions(width_pt: float, height_pt: float) -> dict[str, Any]:
     }
 
 
+def _open_document(pdfium: Any, path: Path) -> Any:
+    """Open a PDF and turn pdfium load failures into a clear ValueError."""
+    try:
+        return pdfium.PdfDocument(str(path))
+    except pdfium.PdfiumError as exc:
+        if "password" in str(exc).lower():
+            raise ValueError(
+                f"Could not open {path.name}: the PDF is password-protected. "
+                "Ask the sender for an unprotected copy."
+            ) from exc
+        raise ValueError(
+            f"Could not open {path.name}: it is not a readable PDF. "
+            "The file may be damaged or incomplete."
+        ) from exc
+
+
 def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any]:
     """Analyze each page's extractable text and physical page dimensions."""
     path = Path(pdf_path)
@@ -175,7 +191,7 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
             "'python -m pip install -r requirements.txt'."
         ) from exc
 
-    document = pdfium.PdfDocument(str(path))
+    document = _open_document(pdfium, path)
     pages: list[dict[str, Any]] = []
     try:
         try:
@@ -330,7 +346,7 @@ def render_pdf_pages(
 
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
-    document = pdfium.PdfDocument(str(pdf_path))
+    document = _open_document(pdfium, Path(pdf_path))
     rendered: list[Path] = []
     try:
         for page_index in range(len(document)):
@@ -365,14 +381,17 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    report = analyze_pdf(args.pdf, min_text_chars=args.min_text_chars)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    try:
+        report = analyze_pdf(args.pdf, min_text_chars=args.min_text_chars)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
-    rendered = render_pdf_pages(args.pdf, args.output.parent / "pages", dpi=args.dpi)
-    rendered_map = {str(index + 1): f"pages/{path.name}" for index, path in enumerate(rendered)}
-    html_path = args.output.with_suffix(".html")
-    html_path.write_text(build_html_report(report, rendered_map), encoding="utf-8")
+        rendered = render_pdf_pages(args.pdf, args.output.parent / "pages", dpi=args.dpi)
+        rendered_map = {str(index + 1): f"pages/{path.name}" for index, path in enumerate(rendered)}
+        html_path = args.output.with_suffix(".html")
+        html_path.write_text(build_html_report(report, rendered_map), encoding="utf-8")
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise SystemExit(f"error: {exc}") from exc
 
     print(f"Analyzed {report['page_count']} page(s) from {args.pdf}")
     print(f"Pages by classification: {report['summary']['pages_by_classification']}")
