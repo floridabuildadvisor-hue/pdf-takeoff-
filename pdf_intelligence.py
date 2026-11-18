@@ -66,6 +66,14 @@ _DIMENSION_RE = re.compile(
     r")"
 )
 
+# A scale note such as 1/4" = 1'-0" or 1" = 20'. It states a drawing scale, not
+# a dimension of anything drawn.
+_SCALE_NOTE_RE = re.compile(
+    rf"(?<![\w./])\d+(?:\s+\d+/\d+|/\d+|\.\d+)?\s*{_INCH_MARK}\s*=\s*"
+    rf"\d+(?:\.\d+)?\s*{_FOOT_MARK}"
+    rf"(?:\s*-\s*\d+(?:\s+\d+/\d+|\.\d+)?\s*{_INCH_MARK}?)?"
+)
+
 
 def classify_sheet(text: str) -> dict[str, Any]:
     """Return a conservative keyword classification with its evidence.
@@ -107,8 +115,12 @@ def extract_sheet_number(text: str) -> str | None:
 
 
 def extract_dimension_tokens(text: str) -> list[str]:
-    """Return dimension-like text exactly as printed; do not convert units."""
-    return [match.group(0).strip() for match in _DIMENSION_RE.finditer(text)]
+    """Return dimension-like text exactly as printed; do not convert units.
+
+    Scale notes are left out. They are not read or applied as a scale either.
+    """
+    without_scale_notes = _SCALE_NOTE_RE.sub(" ", text)
+    return [match.group(0).strip() for match in _DIMENSION_RE.finditer(without_scale_notes)]
 
 
 def _page_dimensions(width_pt: float, height_pt: float) -> dict[str, Any]:
