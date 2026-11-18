@@ -19,6 +19,19 @@ run. `pdf_intelligence.py` and `visual_inspect.py` have not changed since `7f03e
 of PR #2), so the real-PDF runs done on that commit still apply. If `git log -1 origin/main`
 shows a newer commit, re-check every status below against the code before relying on it.
 
+**Changes since that baseline (2026-11-17, repo rescue).** These supersede the matching
+lines in sections 5, 8, 11, 12, 13, 14, 16 and 17 below, which still describe `35e9194`:
+
+- `requirements.txt` now lists Pillow and pins all four packages. No separate
+  `pip install pillow` is needed.
+- `.gitignore` excludes `output/` and `*.pdf`.
+- The stray `pdf-takeoff-` gitlink is removed.
+- CI installs `requirements.txt` and runs on changes to any `*.py`, `tests/**`,
+  `requirements.txt`, `.claude/**` and `docs/**`.
+- `tests/test_repo_hygiene.py` adds 6 tests (20 in total) that guard the items above.
+- `README.md` documents CLI usage again, `.github/copilot-instructions.md` covers all three
+  modules and `TAKEOFF_METHOD.md`, and a root `CLAUDE.md` points here.
+
 **Status labels** (based only on code that was read and run):
 
 | Label | Meaning |
