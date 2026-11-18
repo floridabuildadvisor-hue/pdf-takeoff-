@@ -53,11 +53,16 @@ _SHEET_NUMBER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Foot and inch marks as they come out of PDF text extraction: ASCII, typographic
+# quotes (U+2019, U+201D) and primes (U+2032, U+2033).
+_FOOT_MARK = "['\u2019\u2032]"
+_INCH_MARK = '["\u201d\u2033]'
+
 _DIMENSION_RE = re.compile(
-    r"(?<![\w.])(?:"
-    r"\d+(?:\.\d+)?\s*'\s*-\s*\d+(?:\s+\d+/\d+|\.\d+)?\s*\"?"
-    r"|\d+(?:\.\d+)?\s*'"
-    r"|\d+(?:\s+\d+/\d+|\.\d+)?\s*\""
+    r"(?<![\w./])(?:"
+    rf"\d+(?:\.\d+)?\s*{_FOOT_MARK}\s*-\s*\d+(?:\s+\d+/\d+|\.\d+)?\s*{_INCH_MARK}?"
+    rf"|\d+(?:\.\d+)?\s*{_FOOT_MARK}"
+    rf"|\d+(?:\s+\d+/\d+|/\d+|\.\d+)?\s*{_INCH_MARK}"
     r")"
 )
 
