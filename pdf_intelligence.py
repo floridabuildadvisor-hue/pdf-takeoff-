@@ -57,6 +57,13 @@ _SHEET_NUMBER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# An unlabeled title-block code: the whole line is the code, with a one- or
+# two-letter prefix (C-1, A-6, S201, FP-3, A1.01).
+_BARE_SHEET_CODE_RE = re.compile(
+    r"^[ \t]*([A-Z]{1,2}[-.]?\d{1,3}(?:\.\d{1,2})?[A-Z]?)[ \t]*$",
+    re.MULTILINE,
+)
+
 # Foot and inch marks as they come out of PDF text extraction: ASCII, typographic
 # quotes (U+2019, U+201D) and primes (U+2032, U+2033).
 _FOOT_MARK = "['\u2019\u2032]"
@@ -111,11 +118,20 @@ def classify_sheet(text: str) -> dict[str, Any]:
 
 
 def extract_sheet_number(text: str) -> str | None:
-    """Extract a sheet identifier, as printed, when it follows a recognized label."""
+    """Extract a sheet identifier, as printed.
+
+    A code that follows a recognized label (SHEET, SHEET NO., DWG NO.) wins.
+    Without one, a code that stands alone on its own line is used, but only
+    when the page has exactly one such code. Two different candidates are
+    ambiguous and give None. A number without a letter prefix is never returned.
+    """
     match = _SHEET_NUMBER_RE.search(text)
-    if not match:
-        return None
-    return match.group(1)
+    if match:
+        return match.group(1)
+    bare_codes = set(_BARE_SHEET_CODE_RE.findall(text.replace("\r", "\n")))
+    if len(bare_codes) == 1:
+        return bare_codes.pop()
+    return None
 
 
 def extract_dimension_tokens(text: str) -> list[str]:
