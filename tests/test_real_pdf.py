@@ -12,6 +12,7 @@ from tests.synthetic_pdf import (
     FIXTURE_PATH,
     build_password_protected_pdf,
     build_plan_set_pdf,
+    build_stacked_fraction_pdf,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -75,6 +76,22 @@ class RealPdfAnalysisTests(unittest.TestCase):
         self.assertEqual(page["dimensions"]["orientation"], "portrait")
         self.assertEqual(page["classification"]["category"], "structural")
         self.assertEqual(page["sheet_number"], "S-2")
+
+
+class StackedFractionPdfTests(unittest.TestCase):
+    def test_stacked_fraction_is_read_as_a_fraction_not_run_together(self):
+        with tempfile.TemporaryDirectory() as folder:
+            pdf_path = Path(folder) / "stacked.pdf"
+            pdf_path.write_bytes(build_stacked_fraction_pdf())
+            page = analyze_pdf(pdf_path)["pages"][0]
+        self.assertEqual(page["dimension_tokens"], ["13\u2019-1 1/2\"", "44\u2019-0\""])
+        self.assertIn("13\u2019-1 1/2\"", page["text_preview"])
+        self.assertNotIn("112", page["text_preview"])
+
+    def test_limitations_say_fractions_are_reassembled_and_need_checking(self):
+        limitations = " ".join(analyze_pdf(FIXTURE_PATH)["limitations"])
+        self.assertIn("Stacked fractions are reassembled from character positions", limitations)
+        self.assertIn("check fractional dimensions against the drawing", limitations)
 
 
 class UnreadablePdfTests(unittest.TestCase):
