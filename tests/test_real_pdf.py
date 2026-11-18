@@ -48,6 +48,12 @@ class RealPdfAnalysisTests(unittest.TestCase):
         # pdfium returns the foot mark of this font as U+2019, not ASCII.
         self.assertEqual(self.pages[0]["dimension_tokens"], ["24’-6\""])
 
+    def test_report_limitations_state_how_tokens_and_sheet_numbers_are_read(self):
+        limitations = " ".join(self.report["limitations"])
+        self.assertIn("Scale notes are left out", limitations)
+        self.assertIn("no SHEET or DWG label", limitations)
+        self.assertIn("Stacked fractions", limitations)
+
     def test_blank_page_is_flagged_for_review(self):
         page = self.pages[1]
         self.assertTrue(page["low_text_content"])
