@@ -2,7 +2,7 @@ import math
 import time
 import unittest
 
-from framing_takeoff import calculate_plate_lf, plan_stock_cuts
+from framing_takeoff import calculate_plate_lf, plan_stock_cuts, plate_lf_breakdown
 
 
 class CalculatePlateLfTests(unittest.TestCase):
@@ -30,6 +30,36 @@ class CalculatePlateLfTests(unittest.TestCase):
         for waste in (-0.1, 100.1, math.inf, math.nan):
             with self.subTest(waste=waste), self.assertRaises(ValueError):
                 calculate_plate_lf(20, 3, waste)
+
+
+class PlateLfBreakdownTests(unittest.TestCase):
+    def test_measured_length_and_waste_allowance_are_reported_separately(self):
+        breakdown = plate_lf_breakdown(20, 3, 5)
+        self.assertEqual(breakdown["wall_length_ft"], 20)
+        self.assertEqual(breakdown["plate_courses"], 3)
+        self.assertAlmostEqual(breakdown["measured_lf"], 60)
+        self.assertEqual(breakdown["waste_percent"], 5)
+        self.assertAlmostEqual(breakdown["waste_allowance_lf"], 3)
+        self.assertAlmostEqual(breakdown["total_lf"], 63)
+        self.assertEqual(breakdown["formula"], "20 LF x 3 courses = 60 LF measured; + 5% waste allowance = 63 LF")
+
+    def test_total_matches_calculate_plate_lf(self):
+        for length, courses, waste in ((20, 3, 5), (12.5, 2, 0), (33.25, 3, 10)):
+            self.assertAlmostEqual(
+                plate_lf_breakdown(length, courses, waste)["total_lf"],
+                calculate_plate_lf(length, courses, waste),
+            )
+
+    def test_waste_allowance_is_never_applied_unless_stated(self):
+        breakdown = plate_lf_breakdown(20, 3)
+        self.assertEqual(breakdown["waste_percent"], 0)
+        self.assertAlmostEqual(breakdown["total_lf"], breakdown["measured_lf"])
+        self.assertEqual(breakdown["formula"], "20 LF x 3 courses = 60 LF measured; no waste allowance")
+
+    def test_rejects_the_same_invalid_inputs_as_calculate_plate_lf(self):
+        for args in ((0, 3, 5), (20, 0, 5), (20, 3, -1), (20, True, 5)):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                plate_lf_breakdown(*args)
 
 
 class PlanStockCutsTests(unittest.TestCase):
