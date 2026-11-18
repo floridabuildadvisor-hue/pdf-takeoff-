@@ -1,0 +1,60 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2592 1728] /Rotate 0 /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 281 >>
+stream
+BT /F1 24 Tf 72 1628 Td (SYNTHETIC TEST SHEET - NOT A PROJECT DRAWING) Tj ET
+BT /F1 24 Tf 72 1568 Td (ARCHITECTURAL FLOOR PLAN) Tj ET
+BT /F1 24 Tf 72 1508 Td (OVERALL 24'-6") Tj ET
+BT /F1 24 Tf 72 1448 Td (SCALE: 1/4" = 1'-0") Tj ET
+BT /F1 24 Tf 72 1388 Td (SHEET NO. A1.01) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2592 1728] /Rotate 0 /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 0 >>
+stream
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2592 1728] /Rotate 90 /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 227 >>
+stream
+BT /F1 24 Tf 72 1628 Td (SYNTHETIC TEST SHEET - NOT A PROJECT DRAWING) Tj ET
+BT /F1 24 Tf 72 1568 Td (FOUNDATION PLAN AND FOOTING SCHEDULE) Tj ET
+BT /F1 24 Tf 72 1508 Td (SHEET 3 OF 3) Tj ET
+BT /F1 24 Tf 72 1448 Td (S-2) Tj ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000335 00000 n 
+0000000666 00000 n 
+0000000804 00000 n 
+0000000852 00000 n 
+0000000991 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+1268
+%%EOF

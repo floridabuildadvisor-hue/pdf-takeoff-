@@ -7,8 +7,9 @@ produce review material for a quantity takeoff. The work is extraction and organ
 only: count and measure what is drawn, and keep every value traceable to its sheet.
 
 - `pdf_intelligence.py` is the plan-set diagnostic CLI. `analyze_pdf` inventories each page
-  (size as displayed, rotation, embedded text count, labeled sheet number, dimension-like
-  strings as printed, keyword discipline guess with evidence) and builds the JSON report
+  (size as displayed, rotation, embedded text count, sheet number from a label or a lone
+  title-block code, dimension-like strings as printed, keyword discipline guess with
+  evidence) and builds the JSON report
   (`schema_version` "1.0"). `render_pdf_pages` writes page previews and `build_html_report`
   writes the HTML review page. It does not produce quantities.
 - `visual_inspect.py` renders each page to PNG with `pypdfium2` and optionally marks
@@ -23,8 +24,11 @@ only: count and measure what is drawn, and keep every value traceable to its she
 - `.claude/skills/pdf-drawing-intelligence/SKILL.md` and `docs/pdf-drawing-intelligence.md`
   record what is implemented, what is only planned, the JSON schema and the test gaps.
   The code wins over the docs.
-- Tests: `tests/test_pdf_intelligence.py`, `tests/test_vector_takeoff.py` and
-  `tests/test_repo_hygiene.py` (requirements, ignore rules, CI workflow).
+- Tests: `tests/test_pdf_intelligence.py`, `tests/test_vector_takeoff.py`,
+  `tests/test_repo_hygiene.py` (requirements, ignore rules, CI workflow) and
+  `tests/test_real_pdf.py`, which reads the synthetic fixture
+  `tests/fixtures/synthetic_plan_set.pdf` with real pypdfium2. Rebuild the fixture with
+  `python3 tests/synthetic_pdf.py`.
 
 ## Commands
 

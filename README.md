@@ -34,14 +34,17 @@ Outputs, all relative to the JSON path (default `output/pdf_diagnostics/report.j
 - page previews under `pages/page-001.png` and onward.
 
 For each page the report records the size as displayed, rotation, extracted text count, a
-labeled sheet number when one is found, dimension-like strings exactly as printed, and a
-keyword-based discipline guess with the matched terms. Pages with fewer than
+sheet number when one is found (after a SHEET or DWG label, or a lone title-block code such
+as `A-3`), dimension-like strings exactly as printed, and a keyword-based discipline guess
+with the matched terms. Pages with fewer than
 `--min-text-chars` characters are flagged for OCR or visual review.
 
 **Limits:** only text embedded in the PDF is read. There is no OCR, no symbol recognition,
 no geometry, no scale calibration and no quantities. Dimension strings are not converted or
 checked against scale, and the discipline guess is a keyword heuristic. Review every page
 against the original drawing before using the report.
+
+A damaged or password-protected PDF stops with a one-line `error:` message and exit code 1.
 
 ### Page rendering and symbol candidates (`visual_inspect.py`)
 

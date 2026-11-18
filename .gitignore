@@ -4,3 +4,6 @@ __pycache__/
 # Generated reports and plan PDFs stay local; never commit client files.
 output/
 *.pdf
+
+# The only PDFs in git are synthetic test fixtures built by tests/synthetic_pdf.py.
+!tests/fixtures/*.pdf
