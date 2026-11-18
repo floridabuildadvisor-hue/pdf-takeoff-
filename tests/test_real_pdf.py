@@ -7,8 +7,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from pdf_intelligence import analyze_pdf
-from tests.synthetic_pdf import FIXTURE_PATH, build_plan_set_pdf
+from pdf_intelligence import analyze_pdf, render_pdf_pages
+from tests.synthetic_pdf import (
+    FIXTURE_PATH,
+    build_password_protected_pdf,
+    build_plan_set_pdf,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -60,6 +64,31 @@ class RealPdfAnalysisTests(unittest.TestCase):
         self.assertEqual(page["sheet_number"], "S-2")
 
 
+class UnreadablePdfTests(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.folder = Path(folder.name)
+        self.corrupt = self.folder / "corrupt.pdf"
+        self.corrupt.write_bytes(b"this is not a PDF file")
+        self.protected = self.folder / "protected.pdf"
+        self.protected.write_bytes(build_password_protected_pdf())
+
+    def test_corrupt_pdf_raises_a_clear_error(self):
+        with self.assertRaisesRegex(ValueError, r"corrupt\.pdf.*not a readable PDF"):
+            analyze_pdf(self.corrupt)
+
+    def test_password_protected_pdf_raises_a_clear_error(self):
+        with self.assertRaisesRegex(ValueError, r"protected\.pdf.*password"):
+            analyze_pdf(self.protected)
+
+    def test_rendering_reports_the_same_clear_errors(self):
+        with self.assertRaisesRegex(ValueError, "not a readable PDF"):
+            render_pdf_pages(self.corrupt, self.folder / "pages")
+        with self.assertRaisesRegex(ValueError, "password"):
+            render_pdf_pages(self.protected, self.folder / "pages")
+
+
 class CommandLineTests(unittest.TestCase):
     def _run(self, *args):
         return subprocess.run(
@@ -76,6 +105,29 @@ class CommandLineTests(unittest.TestCase):
             self.assertTrue(output.with_suffix(".html").is_file())
             previews = sorted(path.name for path in (Path(folder) / "pages").glob("*.png"))
             self.assertEqual(previews, ["page-001.png", "page-002.png", "page-003.png"])
+
+
+    def test_cli_reports_unreadable_pdfs_without_a_traceback(self):
+        with tempfile.TemporaryDirectory() as folder:
+            cases = {
+                "corrupt.pdf": (b"this is not a PDF file", "not a readable PDF"),
+                "protected.pdf": (build_password_protected_pdf(), "password"),
+            }
+            for name, (data, expected) in cases.items():
+                pdf_path = Path(folder) / name
+                pdf_path.write_bytes(data)
+                output = Path(folder) / name.replace(".pdf", ".json")
+                result = self._run(str(pdf_path), "--output", str(output))
+                self.assertEqual(result.returncode, 1, name)
+                self.assertIn(expected, result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertFalse(output.exists(), name)
+
+    def test_cli_reports_a_missing_pdf_without_a_traceback(self):
+        result = self._run("no-such-file.pdf")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("PDF not found", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
 
 if __name__ == "__main__":
