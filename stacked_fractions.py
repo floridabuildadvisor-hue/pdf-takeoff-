@@ -34,6 +34,17 @@ def _has_geometry(record: Mapping[str, Any]) -> bool:
     return record.get("box") is not None and bool(record.get("size"))
 
 
+def _extent(record: Mapping[str, Any]) -> float:
+    left, bottom, right, top = record["box"]
+    return max(right - left, top - bottom)
+
+
+def _near(first: Mapping[str, Any], second: Mapping[str, Any]) -> bool:
+    """True when two characters sit within a few glyph widths of each other."""
+    (ax, ay), (bx, by) = _center(first), _center(second)
+    return math.hypot(bx - ax, by - ay) <= 3 * max(_extent(first), _extent(second))
+
+
 def _same_size(first: float, second: float) -> bool:
     return abs(first - second) <= _SAME_SIZE * max(first, second)
 
@@ -86,7 +97,10 @@ def _reading_direction(chars: Sequence[Mapping[str, Any]], start: int, end: int)
     """Unit vector along the baseline, taken from the main-size characters around the run."""
     last = _skip_whitespace(chars, start - 1, -1)
     first = last + 1
-    while first > 0 and _has_geometry(chars[first - 1]) and chars[first - 1]["char"] in _DIMENSION_CHARS:
+    while (
+        first > 0 and _has_geometry(chars[first - 1]) and chars[first - 1]["char"] in _DIMENSION_CHARS
+        and (first > last or _near(chars[first - 1], chars[first]))
+    ):
         first -= 1
     anchors = [_center(chars[index]) for index in range(first, last + 1)]
     after = _skip_whitespace(chars, end, 1)
@@ -153,7 +167,14 @@ def rebuild_stacked_fractions(chars: Sequence[Mapping[str, Any]]) -> str:
             pieces.append(chars[index]["char"])
             index += 1
             continue
-        if pieces and pieces[-1].isdigit():
+        before = _skip_whitespace(chars, index - 1, -1)
+        if (
+            before >= 0 and chars[before]["char"].isdigit() and _has_geometry(chars[before])
+            and _near(chars[before], chars[digits[0]])
+        ):
+            # Whole inches belong to this fraction: one space, whatever was generated.
+            while pieces and pieces[-1].isspace():
+                pieces.pop()
             pieces.append(" ")
         pieces.append(fraction)
         after = _skip_whitespace(chars, end, 1)
