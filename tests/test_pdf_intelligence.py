@@ -57,6 +57,21 @@ class DrawingTextExtractionTests(unittest.TestCase):
         self.assertEqual(extract_dimension_tokens('3/4" PLYWOOD'), ['3/4"'])
         self.assertEqual(extract_dimension_tokens("12'-6 1/2\""), ["12'-6 1/2\""])
 
+    def test_scale_notes_are_not_returned_as_dimension_tokens(self):
+        for note in (
+            'SCALE: 1/4" = 1\'-0"',
+            '3/16"=1\'-0"',
+            '1 1/2" = 1\'-0"',
+            '1" = 20\'',
+            "1/8\u2033 = 1\u2032-0\u2033",
+            "1/4\" = 1\u2019-0\"",
+        ):
+            self.assertEqual(extract_dimension_tokens(note), [], note)
+
+    def test_dimensions_next_to_a_scale_note_are_kept(self):
+        text = 'FLOOR PLAN  SCALE: 1/4" = 1\'-0"\nOVERALL 24\'-6" BY 36"'
+        self.assertEqual(extract_dimension_tokens(text), ["24'-6\"", '36"'])
+
 
 class PdfAnalysisTests(unittest.TestCase):
     def test_html_report_escapes_text_and_links_rendered_pages(self):
