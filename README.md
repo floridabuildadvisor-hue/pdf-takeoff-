@@ -53,40 +53,53 @@ python3 visual_inspect.py path/to/plans.pdf
 python3 visual_inspect.py path/to/plans.pdf --template path/to/symbol-crop.png --threshold 0.82
 ```
 
-Pages are rendered to `output/rendered/` (200 DPI by default; change with `--dpi` and
-`--output`). With `--template`, likely matches of the cropped symbol are boxed in red with
-a score. Template matching is sensitive to symbol scale, rotation, line weight and scan
-quality. The boxes are candidates for visual review, never a count.
+Template matching is sensitive to symbol scale, rotation, line weight, and scan quality. It is only a starting point for consistent drawings. Inspect every result and the plan legend; adjust the threshold to reduce missed or false matches. Avoid using the candidate count as a final quantity without human verification.
 
-### Formula helpers (`vector_takeoff.py`)
+## Framing takeoff: wall plates
 
-`vector_takeoff.py` has no CLI. It holds tested length and framing helpers that take
-points, lengths and a verified scale from the caller.
+The first framing formula calculates baseline wall-plate linear footage:
 
-### BOQ export and dimension register (`boq.py`, `dimension_register.py`)
+```python
+from framing_takeoff import calculate_plate_lf
 
-Neither has a CLI. `boq.export_boq(items, path)` writes BOQ lines to CSV and refuses any
-line with an empty formula or source sheet, naming the item codes.
-`dimension_register.validate_register(entries)` flags dimensions with no source sheet and
-names that appear with different values, for the estimator to resolve against the drawings.
-Neither module checks that a quantity is right.
-
-## Tests
-
-```bash
-python3 -m unittest discover -s tests -v
+total_lf = calculate_plate_lf(
+    wall_length_ft=20,
+    plate_courses=3,
+    waste_percent=5,
+)
+print(total_lf)  # 63.0 LF
 ```
 
-## Client files
+Formula: `wall length × plate courses × (1 + waste_percent / 100)`.
 
-`output/` and `*.pdf` are git-ignored. Client plans, client names, addresses and generated
-reports stay local and are never committed to this public repository.
+The default waste allowance is 5%. This is a baseline linear-footage estimate only. It does not derive the plate build-up or wall segments from drawings. Plate assemblies must be defined separately: bottom plates stop at openings, and single/double top plates must be counted according to the applicable wall assembly. Account for corners, intersections, laps, splices, and project-specific details before procurement. Do not use a generic linear-footage multiplier as a substitute for that assembly takeoff.
 
-## Planned workflow
+### Stock-length cutting plan
 
-- Render PDF sheets to images for visual review
-- Identify relevant symbols and dimensions
-- Mark counts and measurements directly on the drawing
-- Store each quantity with its formula and source sheet
-- Export a BOQ in Excel or CSV for review
-- Verify totals against written dimensions and plan notes
+When the actual cut pieces and supplier stock lengths are known, use the cutting-plan helper:
+
+```python
+from framing_takeoff import plan_stock_cuts
+
+plan = plan_stock_cuts(
+    cut_lengths_ft=[6, 4, 3],
+    stock_lengths_ft=[8, 10, 12, 16],
+    kerf_ft=0.01,
+)
+for board in plan["boards"]:
+    print(board)
+print("Stock LF:", plan["total_stock_lf"])
+print("Offcut LF:", plan["offcut_lf"])
+```
+
+This uses a best-fit-decreasing heuristic: longer cuts are assigned first, then placed into the existing board that leaves the least offcut. Remaining offcuts can be reused by later cuts in the same input batch. It is a practical heuristic, not a guarantee of the globally cheapest or smallest purchase.
+
+The stock-length planner requires explicit cut lengths and available stock lengths; it does not assume a supplier's inventory. Kerf is configurable. It does not add another 5% reserve because the cutting plan already accounts for cut waste and offcuts; avoid double-counting the 5% allowance from the baseline LF estimator. Keep different plate assemblies or project scopes in separate batches when offcut reuse between them is not permitted.
+
+**Important:** the planner only optimizes a list of cuts supplied to it. It does not read drawings or determine bottom/top plate lengths, opening interruptions, corners, intersections, bearing conditions, or fire-wall assembly requirements. Those must be resolved from the plans/specifications and project RFIs before generating purchase quantities.
+
+Run the unit tests:
+
+```bash
+python -m unittest discover -s tests -v
+```

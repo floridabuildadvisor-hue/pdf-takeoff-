@@ -3,6 +3,8 @@ name: Validate takeoff formulas
 on:
   push:
     paths:
+      - "vector_takeoff.py"
+      - "framing_takeoff.py"
       - "**.py"
       - "tests/**"
       - "requirements.txt"
@@ -11,6 +13,8 @@ on:
       - ".github/workflows/validate.yml"
   pull_request:
     paths:
+      - "vector_takeoff.py"
+      - "framing_takeoff.py"
       - "**.py"
       - "tests/**"
       - "requirements.txt"
