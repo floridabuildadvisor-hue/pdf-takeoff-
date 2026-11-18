@@ -53,30 +53,41 @@ python3 visual_inspect.py path/to/plans.pdf
 python3 visual_inspect.py path/to/plans.pdf --template path/to/symbol-crop.png --threshold 0.82
 ```
 
-Template matching is sensitive to symbol scale, rotation, line weight, and scan quality. It is only a starting point for consistent drawings. Inspect every result and the plan legend; adjust the threshold to reduce missed or false matches. Avoid using the candidate count as a final quantity without human verification.
+Pages are rendered to `output/rendered/` (200 DPI by default; change with `--dpi` and
+`--output`). With `--template`, likely matches of the cropped symbol are boxed in red with
+a score. Template matching is sensitive to symbol scale, rotation, line weight and scan
+quality. The boxes are candidates for visual review, never a count.
 
-## Framing takeoff: wall plates
+### Formula helpers (`vector_takeoff.py`)
 
-The first framing formula calculates baseline wall-plate linear footage:
+`vector_takeoff.py` has no CLI. It holds tested length and framing helpers that take
+points, lengths and a verified scale from the caller. `plate_length_feet` there is the
+plain product of wall length and plate count, with no allowance.
+
+### Wall plates (`framing_takeoff.py`)
 
 ```python
-from framing_takeoff import calculate_plate_lf
+from framing_takeoff import plate_lf_breakdown
 
-total_lf = calculate_plate_lf(
-    wall_length_ft=20,
-    plate_courses=3,
-    waste_percent=5,
-)
-print(total_lf)  # 63.0 LF
+line = plate_lf_breakdown(wall_length_ft=20, plate_courses=3, waste_percent=5)
+print(line["measured_lf"])         # 60.0  (traces to the drawing)
+print(line["waste_allowance_lf"])  # 3.0   (the estimator's allowance, not measured)
+print(line["total_lf"])            # 63.0
+print(line["formula"])             # 20 LF x 3 courses = 60 LF measured; + 5% waste allowance = 63 LF
 ```
 
-Formula: `wall length × plate courses × (1 + waste_percent / 100)`.
+`plate_lf_breakdown` adds no allowance unless a percentage is given, and keeps the measured
+length and the allowance as separate values so a BOQ line can show both.
+`calculate_plate_lf(wall_length_ft, plate_courses, waste_percent=5)` returns only the total
+and applies 5% when no percentage is passed.
 
-The default waste allowance is 5%. This is a baseline linear-footage estimate only. It does not derive the plate build-up or wall segments from drawings. Plate assemblies must be defined separately: bottom plates stop at openings, and single/double top plates must be counted according to the applicable wall assembly. Account for corners, intersections, laps, splices, and project-specific details before procurement. Do not use a generic linear-footage multiplier as a substitute for that assembly takeoff.
+Both are baseline linear-footage formulas: wall length × plate courses. They do not read
+the plate build-up or the wall segments from the drawings. Bottom plates stop at openings,
+and single or double top plates are counted per wall assembly as drawn. Corners,
+intersections, laps and splices are not included. Take those from the plans before the
+quantity is released.
 
-### Stock-length cutting plan
-
-When the actual cut pieces and supplier stock lengths are known, use the cutting-plan helper:
+### Stock-length cutting aid (`framing_takeoff.py`)
 
 ```python
 from framing_takeoff import plan_stock_cuts
@@ -88,18 +99,51 @@ plan = plan_stock_cuts(
 )
 for board in plan["boards"]:
     print(board)
+print("Cut LF:", plan["total_cut_lf"])
 print("Stock LF:", plan["total_stock_lf"])
 print("Offcut LF:", plan["offcut_lf"])
 ```
 
-This uses a best-fit-decreasing heuristic: longer cuts are assigned first, then placed into the existing board that leaves the least offcut. Remaining offcuts can be reused by later cuts in the same input batch. It is a practical heuristic, not a guarantee of the globally cheapest or smallest purchase.
+The caller supplies the cut pieces and the stock lengths to consider; nothing is assumed
+about what any yard carries. Up to 12 cuts are packed by an exact search for the least
+stock footage, then the fewest boards. Larger batches use a best-fit-decreasing heuristic,
+which is practical but not guaranteed to be the least. `plan["method"]` says which one ran.
 
-The stock-length planner requires explicit cut lengths and available stock lengths; it does not assume a supplier's inventory. Kerf is configurable. It does not add another 5% reserve because the cutting plan already accounts for cut waste and offcuts; avoid double-counting the 5% allowance from the baseline LF estimator. Keep different plate assemblies or project scopes in separate batches when offcut reuse between them is not permitted.
+- Kerf is charged once for every cut, including the last cut on a board, so two 8 ft pieces
+  do not come out of one 16 ft board when `kerf_ft` is above zero.
+- No percentage allowance is added. Do not also apply a waste percentage to the same pieces.
+- Offcuts are reused only within one call. Keep assemblies or scopes in separate calls when
+  offcuts should not cross between them.
 
-**Important:** the planner only optimizes a list of cuts supplied to it. It does not read drawings or determine bottom/top plate lengths, opening interruptions, corners, intersections, bearing conditions, or fire-wall assembly requirements. Those must be resolved from the plans/specifications and project RFIs before generating purchase quantities.
+**This is a cutting aid, not a takeoff quantity and not an order.** The measured quantity is
+`total_cut_lf`. `total_stock_lf` depends on the stock lengths passed in. The helper does not
+read drawings or work out plate lengths, opening interruptions, corners or intersections;
+those come from the plans. Purchasing and supplier selection are outside this repository.
 
-Run the unit tests:
+### BOQ export and dimension register (`boq.py`, `dimension_register.py`)
+
+Neither has a CLI. `boq.export_boq(items, path)` writes BOQ lines to CSV and refuses any
+line with an empty formula or source sheet, naming the item codes.
+`dimension_register.validate_register(entries)` flags dimensions with no source sheet and
+names that appear with different values, for the estimator to resolve against the drawings.
+Neither module checks that a quantity is right.
+
+## Tests
 
 ```bash
-python -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
+
+## Client files
+
+`output/` and `*.pdf` are git-ignored. Client plans, client names, addresses and generated
+reports stay local and are never committed to this public repository.
+
+## Planned workflow
+
+- Render PDF sheets to images for visual review
+- Identify relevant symbols and dimensions
+- Mark counts and measurements directly on the drawing
+- Store each quantity with its formula and source sheet
+- Export a BOQ in Excel or CSV for review
+- Verify totals against written dimensions and plan notes

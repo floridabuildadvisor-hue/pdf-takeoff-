@@ -67,6 +67,18 @@ and tested with synthetic data, neither connected to PDF extraction yet:
   or units. It never picks a value; the estimator resolves each flag against the drawings.
 - 63 tests in total.
 
+**Framing module merged (2026-11-17).** PR #1 is merged, so `framing_takeoff.py` is on
+`main`. This supersedes the PR #1 paragraph in section 16.
+
+- `plate_lf_breakdown` keeps the measured length and the waste allowance apart and adds no
+  allowance unless one is given. `calculate_plate_lf` still defaults to 5%; prefer the
+  breakdown for anything that reaches a BOQ line.
+- `plan_stock_cuts` is a cutting aid on caller-supplied stock lengths. It is not a takeoff
+  quantity and not an order; the measured quantity is `total_cut_lf`. Purchasing stays out
+  of scope (section 2).
+- `vector_takeoff.plate_length_feet` and `framing_takeoff.calculate_plate_lf` overlap: the
+  first allows a zero length and has no allowance; the second rejects zero and can add one.
+
 **Status labels** (based only on code that was read and run):
 
 | Label | Meaning |

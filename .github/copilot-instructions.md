@@ -18,6 +18,11 @@ only: count and measure what is drawn, and keep every value traceable to its she
 - `vector_takeoff.py` holds standard-library formula helpers: `distance_feet`,
   `polyline_length_feet`, `deduct_openings`, `stud_count` and `plate_length_feet`. Callers
   pass in points, lengths and a verified scale. Nothing here reads a PDF.
+- `framing_takeoff.py` holds wall-plate formulas and a cutting aid, standard library only.
+  `plate_lf_breakdown` returns the measured length, the waste allowance and the total as
+  separate values (no allowance unless one is given). `calculate_plate_lf` returns only
+  the total and defaults to 5%. `plan_stock_cuts` packs caller-supplied cuts into
+  caller-supplied stock lengths; it is a cutting aid, not a takeoff quantity or an order.
 - `boq.py` exports BOQ lines to CSV with `export_boq(items, path)`. Columns: `item_code`,
   `quantity`, `unit`, `formula`, `source_sheet`, `notes`, `reviewer_initials`. A line with
   an empty formula or source sheet stops the export with a `ValueError` naming the codes.
@@ -31,6 +36,7 @@ only: count and measure what is drawn, and keep every value traceable to its she
   record what is implemented, what is only planned, the JSON schema and the test gaps.
   The code wins over the docs.
 - Tests: `tests/test_pdf_intelligence.py`, `tests/test_vector_takeoff.py`, `tests/test_boq.py`,
+  `tests/test_framing_takeoff.py`,
   `tests/test_dimension_register.py`,
   `tests/test_repo_hygiene.py` (requirements, ignore rules, CI workflow) and
   `tests/test_real_pdf.py`, which reads the synthetic fixture
