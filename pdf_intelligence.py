@@ -250,6 +250,11 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
             "Text extraction only reads text embedded in the PDF; image-only text requires OCR.",
             "Sheet classification is keyword-based and must be checked against the drawing.",
             "Dimension tokens are returned as printed strings and are not interpreted or scale-verified.",
+            "Scale notes are left out of dimension tokens and are not read or applied as a scale.",
+            "Stacked fractions can run together in extracted text (for example 1 1/2 read as 112); "
+            "check fractional dimensions against the drawing.",
+            "A sheet number with no SHEET or DWG label is taken from a lone code on its own line; "
+            "check it against the title block.",
             "No symbols, walls, openings, geometry, quantities, or code compliance are verified by this report.",
             "Every page remains subject to estimator review before takeoff use.",
         ],
