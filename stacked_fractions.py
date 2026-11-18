@@ -102,6 +102,8 @@ def _reading_direction(chars: Sequence[Mapping[str, Any]], start: int, end: int)
         and (first > last or _near(chars[first - 1], chars[first]))
     ):
         first -= 1
+    if last < 0 or not _has_geometry(chars[last]) or not _near(chars[last], chars[start]):
+        first = last + 1  # nothing next to the stack on this side
     anchors = [_center(chars[index]) for index in range(first, last + 1)]
     after = _skip_whitespace(chars, end, 1)
     if after < len(chars) and _has_geometry(chars[after]) and chars[after]["char"] in _INCH_MARKS:
