@@ -65,7 +65,7 @@ and tested with synthetic data, neither connected to PDF extraction yet:
 - `dimension_register.py`: `validate_register(entries)` returns review flags:
   `missing_source`, and `conflicting_values` when the same name carries different values
   or units. It never picks a value; the estimator resolves each flag against the drawings.
-- 70 tests in total.
+- 63 tests in total.
 
 **Status labels** (based only on code that was read and run):
 
