@@ -21,6 +21,12 @@ def _chars(pieces, angle_deg=0.0):
     records = []
     cursor = 0.0
     for text, size, lift in pieces:
+        if size is None:
+            # Whitespace the extractor generates: no position, no size.
+            # ``lift`` is reused as a jump along the baseline to the next piece.
+            records.extend({"char": char, "box": None, "size": None} for char in text)
+            cursor += lift
+            continue
         for char in text:
             width = size * 0.5
             cx = 100 + along[0] * (cursor + width / 2) + up[0] * (lift + size * 0.35)
@@ -90,6 +96,33 @@ class RebuildStackedFractionsTests(unittest.TestCase):
         # 8 over 3 is not a proper fraction; do not invent one.
         records = _chars([("5", MAIN, 0), ("8", SMALL, 4), ("3", SMALL, -3), ('"', MAIN, 0)])
         self.assertEqual(rebuild_stacked_fractions(records), '583"')
+
+    def test_line_break_generated_inside_the_stack_is_dropped(self):
+        records = _chars([
+            ("7'-11", MAIN, 0), ("3", SMALL, 4), ("\r\n", None, -4.5), ("8", SMALL, -3),
+            ("\r\n", None, 0), ('"', MAIN, 0), (" ", None, 0), ("2'-5\"", MAIN, 0),
+        ])
+        self.assertEqual(rebuild_stacked_fractions(records), "7'-11 3/8\" 2'-5\"")
+
+    def test_space_generated_between_whole_inches_and_the_stack(self):
+        for angle in (0, 35):
+            records = _chars([
+                ("69'-5", MAIN, 0), (" ", None, 0), ("1", SMALL, 4), ("16", SMALL, -3), ('"', MAIN, 0),
+            ], angle_deg=angle)
+            self.assertEqual(rebuild_stacked_fractions(records), "69'-5 1/16\"", angle)
+
+    def test_stack_on_its_own_with_generated_line_breaks(self):
+        records = _chars([
+            ("NOTES", MAIN, 0), ("\r\n", None, 0), ("1", SMALL, 4), ("\r\n", None, -4.5),
+            ("2", SMALL, -3), ('"', MAIN, 0),
+        ])
+        self.assertEqual(rebuild_stacked_fractions(records), "NOTES\r\n1/2\"")
+
+    def test_small_digits_far_apart_are_not_joined_across_a_line_break(self):
+        records = _chars([
+            ("4'-2", MAIN, 0), ("1", SMALL, 4), ("\r\n", None, 300), ("2", SMALL, -3), ('"', MAIN, 0),
+        ])
+        self.assertEqual(rebuild_stacked_fractions(records), "4'-21\r\n2\"")
 
     def test_characters_without_position_data_pass_through(self):
         records = [{"char": char, "box": None, "size": None} for char in "13'-112\""]
