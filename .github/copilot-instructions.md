@@ -18,13 +18,20 @@ only: count and measure what is drawn, and keep every value traceable to its she
 - `vector_takeoff.py` holds standard-library formula helpers: `distance_feet`,
   `polyline_length_feet`, `deduct_openings`, `stud_count` and `plate_length_feet`. Callers
   pass in points, lengths and a verified scale. Nothing here reads a PDF.
+- `boq.py` exports BOQ lines to CSV with `export_boq(items, path)`. Columns: `item_code`,
+  `quantity`, `unit`, `formula`, `source_sheet`, `notes`, `reviewer_initials`. A line with
+  an empty formula or source sheet stops the export with a `ValueError` naming the codes.
+- `dimension_register.py` checks a list of dimensions read from the plans with
+  `validate_register(entries)`. It flags entries with no source sheet and names printed
+  with different values. It only flags; it never chooses a value.
 - `TAKEOFF_METHOD.md` is the owner's takeoff method: traceable BOQ lines, plan markup,
   visual and written-dimension checks, the sheet index and the verification loop. Follow
   it for any output that reaches the estimator, and change it only at the owner's request.
 - `.claude/skills/pdf-drawing-intelligence/SKILL.md` and `docs/pdf-drawing-intelligence.md`
   record what is implemented, what is only planned, the JSON schema and the test gaps.
   The code wins over the docs.
-- Tests: `tests/test_pdf_intelligence.py`, `tests/test_vector_takeoff.py`,
+- Tests: `tests/test_pdf_intelligence.py`, `tests/test_vector_takeoff.py`, `tests/test_boq.py`,
+  `tests/test_dimension_register.py`,
   `tests/test_repo_hygiene.py` (requirements, ignore rules, CI workflow) and
   `tests/test_real_pdf.py`, which reads the synthetic fixture
   `tests/fixtures/synthetic_plan_set.pdf` with real pypdfium2. Rebuild the fixture with

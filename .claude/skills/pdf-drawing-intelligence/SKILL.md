@@ -55,6 +55,18 @@ sections 8, 9, 11, 14 and 17 below and the probe table in the docs file:
   counts as a labeled match, and the report does not say whether a sheet number came from
   a label or from a bare code.
 
+**Proof-chain modules (2026-11-17).** Two new standard-library modules, both IMPLEMENTED
+and tested with synthetic data, neither connected to PDF extraction yet:
+
+- `boq.py`: `export_boq(items, path)` writes a CSV with `item_code`, `quantity`, `unit`,
+  `formula`, `source_sheet`, `notes` and `reviewer_initials`. It raises `ValueError` naming
+  the item codes whose formula or source sheet is empty, and writes nothing in that case.
+  It does not check that a quantity is right.
+- `dimension_register.py`: `validate_register(entries)` returns review flags:
+  `missing_source`, and `conflicting_values` when the same name carries different values
+  or units. It never picks a value; the estimator resolves each flag against the drawings.
+- 70 tests in total.
+
 **Status labels** (based only on code that was read and run):
 
 | Label | Meaning |

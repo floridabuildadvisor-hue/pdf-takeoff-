@@ -63,6 +63,14 @@ quality. The boxes are candidates for visual review, never a count.
 `vector_takeoff.py` has no CLI. It holds tested length and framing helpers that take
 points, lengths and a verified scale from the caller.
 
+### BOQ export and dimension register (`boq.py`, `dimension_register.py`)
+
+Neither has a CLI. `boq.export_boq(items, path)` writes BOQ lines to CSV and refuses any
+line with an empty formula or source sheet, naming the item codes.
+`dimension_register.validate_register(entries)` flags dimensions with no source sheet and
+names that appear with different values, for the estimator to resolve against the drawings.
+Neither module checks that a quantity is right.
+
 ## Tests
 
 ```bash
