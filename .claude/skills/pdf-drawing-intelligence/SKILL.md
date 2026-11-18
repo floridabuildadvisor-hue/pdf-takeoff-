@@ -19,6 +19,84 @@ run. `pdf_intelligence.py` and `visual_inspect.py` have not changed since `7f03e
 of PR #2), so the real-PDF runs done on that commit still apply. If `git log -1 origin/main`
 shows a newer commit, re-check every status below against the code before relying on it.
 
+**Changes since that baseline (2026-11-17, repo rescue).** These supersede the matching
+lines in sections 5, 8, 11, 12, 13, 14, 16 and 17 below, which still describe `35e9194`:
+
+- `requirements.txt` now lists Pillow and pins all four packages. No separate
+  `pip install pillow` is needed.
+- `.gitignore` excludes `output/` and `*.pdf`.
+- The stray `pdf-takeoff-` gitlink is removed.
+- CI installs `requirements.txt` and runs on changes to any `*.py`, `tests/**`,
+  `requirements.txt`, `.claude/**` and `docs/**`.
+- `tests/test_repo_hygiene.py` adds 6 tests (20 in total) that guard the items above.
+- `README.md` documents CLI usage again, `.github/copilot-instructions.md` covers all three
+  modules and `TAKEOFF_METHOD.md`, and a root `CLAUDE.md` points here.
+
+**Extraction fidelity changes (2026-11-17).** These supersede the matching lines in
+sections 8, 9, 11, 14 and 17 below and the probe table in the docs file:
+
+- Dimension tokens accept ASCII marks, typographic quotes (U+2019, U+201D) and primes
+  (U+2032, U+2033), and keep fraction-only inches whole (`3/4"`). Tokens are still returned
+  as printed.
+- Scale notes (`1/4" = 1'-0"`, `1" = 20'`) are left out of dimension tokens. They are not
+  read or applied as a scale.
+- Sheet numbers are returned as printed (`A1.01`, `S2.1`; dots are no longer rewritten to
+  hyphens). The label must be a whole word and the ID must start with a letter, so
+  `SHEET NOTES 1`, `SHEET 1 OF 15` and other bare numbers give `None`.
+- With no label, a code alone on its own line (`C-1`, `A-6`, `T-3`) is used when the page
+  has exactly one distinct candidate. Two different candidates give `None`.
+- Corrupt and password-protected PDFs raise `ValueError` naming the file. The CLI prints
+  `error: ...` and exits 1 with no traceback.
+- `tests/fixtures/synthetic_plan_set.pdf` (built by `tests/synthetic_pdf.py`, no project
+  data) is read by real pypdfium2 in `tests/test_real_pdf.py`, including a CLI run that
+  writes the JSON, HTML and page previews. 48 tests in total.
+- Still open: stacked fractions run together in extracted text (`13'-1 1/2"` can read
+  `13'-112"`), a token can span a line break, a cross-reference such as `SEE SHEET S-2`
+  counts as a labeled match, and the report does not say whether a sheet number came from
+  a label or from a bare code.
+
+**Proof-chain modules (2026-11-17).** Two new standard-library modules, both IMPLEMENTED
+and tested with synthetic data, neither connected to PDF extraction yet:
+
+- `boq.py`: `export_boq(items, path)` writes a CSV with `item_code`, `quantity`, `unit`,
+  `formula`, `source_sheet`, `notes` and `reviewer_initials`. It raises `ValueError` naming
+  the item codes whose formula or source sheet is empty, and writes nothing in that case.
+  It does not check that a quantity is right.
+- `dimension_register.py`: `validate_register(entries)` returns review flags:
+  `missing_source`, and `conflicting_values` when the same name carries different values
+  or units. It never picks a value; the estimator resolves each flag against the drawings.
+- 63 tests in total.
+
+**Framing module merged (2026-11-17).** PR #1 is merged, so `framing_takeoff.py` is on
+`main`. This supersedes the PR #1 paragraph in section 16.
+
+- `plate_lf_breakdown` keeps the measured length and the waste allowance apart and adds no
+  allowance unless one is given. `calculate_plate_lf` still defaults to 5%; prefer the
+  breakdown for anything that reaches a BOQ line.
+- `plan_stock_cuts` is a cutting aid on caller-supplied stock lengths. It is not a takeoff
+  quantity and not an order; the measured quantity is `total_cut_lf`. Purchasing stays out
+  of scope (section 2).
+- `vector_takeoff.plate_length_feet` and `framing_takeoff.calculate_plate_lf` overlap: the
+  first allows a zero length and has no allowance; the second rejects zero and can add one.
+
+**Stacked fractions (2026-11-17).** New module `stacked_fractions.py`, IMPLEMENTED and
+tested with synthetic character records and a synthetic PDF read by real pypdfium2. This
+supersedes the "still open" stacked-fraction line above.
+
+- Plan fonts draw `13'-1 1/2"` with the fraction digits smaller, one above and one below
+  the baseline. Plain extraction returns `13'-112"`. `page_text_with_fractions` reads each
+  character's box (`get_charbox`) and font size (`FPDFText_GetFontSize`) and writes the
+  stack back as `1/2`. `analyze_pdf` calls it for every page.
+- The baseline direction comes from the characters next to the stack, so rotated and
+  diagonal dimension text is read the same way.
+- A stack is rewritten only for a proper fraction with a denominator from 2 to 64. Anything
+  else stays exactly as extracted.
+- Spaces and line breaks that extraction generates inside the stack are dropped.
+- Still open: when extraction lists a fraction away from its whole inches (interleaved with
+  another dimension), the two are not rejoined; a stack with no neighbouring characters in
+  rotated text is left as extracted; fractions drawn as outlined vector shapes are not text
+  at all. Fractional dimensions still need checking against the drawing.
+
 **Status labels** (based only on code that was read and run):
 
 | Label | Meaning |

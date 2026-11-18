@@ -6,6 +6,11 @@ Everything here was checked on 2026-11-10. `pdf_intelligence.py` and `visual_ins
 were checked at `7f03e37`, and they are unchanged at `35e9194`. `vector_takeoff.py` and the
 test count were checked at `35e9194`. Re-check them if the code has changed since then.
 
+> **Update 2026-11-17:** the extraction functions, error handling and tests changed after
+> this reference was written. The dated notes at the top of the skill list the changes and
+> supersede the matching rows in sections 2 to 5 below. The JSON keys and
+> `schema_version` are unchanged.
+
 ## 1. JSON report, `schema_version` "1.0"
 
 The report is produced by `analyze_pdf()` and written by the CLI to `--output`.
