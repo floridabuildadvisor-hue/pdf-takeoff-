@@ -12,6 +12,10 @@ only: count and measure what is drawn, and keep every value traceable to its she
   evidence) and builds the JSON report
   (`schema_version` "1.0"). `render_pdf_pages` writes page previews and `build_html_report`
   writes the HTML review page. It does not produce quantities.
+- `stacked_fractions.py` reassembles stacked fractions from character positions, so text
+  that extraction returns as `13'-112"` is read as `13'-1 1/2"`. `analyze_pdf` runs every
+  page through it. It rewrites only clear stacks that form a proper fraction of an inch
+  and leaves everything else exactly as extracted.
 - `visual_inspect.py` renders each page to PNG with `pypdfium2` and optionally marks
   OpenCV template-match boxes for a cropped symbol. The boxes are visual-review candidates,
   not counts.
@@ -37,6 +41,7 @@ only: count and measure what is drawn, and keep every value traceable to its she
   The code wins over the docs.
 - Tests: `tests/test_pdf_intelligence.py`, `tests/test_vector_takeoff.py`, `tests/test_boq.py`,
   `tests/test_framing_takeoff.py`,
+  `tests/test_stacked_fractions.py`,
   `tests/test_dimension_register.py`,
   `tests/test_repo_hygiene.py` (requirements, ignore rules, CI workflow) and
   `tests/test_real_pdf.py`, which reads the synthetic fixture

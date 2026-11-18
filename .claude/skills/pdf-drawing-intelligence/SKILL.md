@@ -79,6 +79,24 @@ and tested with synthetic data, neither connected to PDF extraction yet:
 - `vector_takeoff.plate_length_feet` and `framing_takeoff.calculate_plate_lf` overlap: the
   first allows a zero length and has no allowance; the second rejects zero and can add one.
 
+**Stacked fractions (2026-11-17).** New module `stacked_fractions.py`, IMPLEMENTED and
+tested with synthetic character records and a synthetic PDF read by real pypdfium2. This
+supersedes the "still open" stacked-fraction line above.
+
+- Plan fonts draw `13'-1 1/2"` with the fraction digits smaller, one above and one below
+  the baseline. Plain extraction returns `13'-112"`. `page_text_with_fractions` reads each
+  character's box (`get_charbox`) and font size (`FPDFText_GetFontSize`) and writes the
+  stack back as `1/2`. `analyze_pdf` calls it for every page.
+- The baseline direction comes from the characters next to the stack, so rotated and
+  diagonal dimension text is read the same way.
+- A stack is rewritten only for a proper fraction with a denominator from 2 to 64. Anything
+  else stays exactly as extracted.
+- Spaces and line breaks that extraction generates inside the stack are dropped.
+- Still open: when extraction lists a fraction away from its whole inches (interleaved with
+  another dimension), the two are not rejoined; a stack with no neighbouring characters in
+  rotated text is left as extracted; fractions drawn as outlined vector shapes are not text
+  at all. Fractional dimensions still need checking against the drawing.
+
 **Status labels** (based only on code that was read and run):
 
 | Label | Meaning |
