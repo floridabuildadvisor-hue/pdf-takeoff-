@@ -41,6 +41,22 @@ class DrawingTextExtractionTests(unittest.TestCase):
         self.assertIn("24'-6\"", tokens)
         self.assertIn('36"', tokens)
 
+    def test_keeps_unicode_prime_dimensions_whole_and_as_printed(self):
+        self.assertEqual(extract_dimension_tokens("12\u2032-0\u2033"), ["12\u2032-0\u2033"])
+        self.assertEqual(
+            extract_dimension_tokens("WALL 8\u2032-6 1/2\u2033 HIGH, SLAB 4\u2033"),
+            ["8\u2032-6 1/2\u2033", "4\u2033"],
+        )
+
+    def test_keeps_typographic_quote_dimensions_whole_and_as_printed(self):
+        self.assertEqual(extract_dimension_tokens("24\u2019-6\""), ["24\u2019-6\""])
+        self.assertEqual(extract_dimension_tokens("10\u2019-0\u201d"), ["10\u2019-0\u201d"])
+        self.assertEqual(extract_dimension_tokens("EL. 10.5\u2019"), ["10.5\u2019"])
+
+    def test_keeps_fraction_only_inches_whole(self):
+        self.assertEqual(extract_dimension_tokens('3/4" PLYWOOD'), ['3/4"'])
+        self.assertEqual(extract_dimension_tokens("12'-6 1/2\""), ["12'-6 1/2\""])
+
 
 class PdfAnalysisTests(unittest.TestCase):
     def test_html_report_escapes_text_and_links_rendered_pages(self):
