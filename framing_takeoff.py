@@ -205,7 +205,7 @@ def plan_stock_cuts(
     stock footage and then board count. Larger batches use a best-fit-decreasing
     heuristic to keep runtime predictable. Offcuts are reusable within this
     one input batch. This function does not infer wall assemblies or add a
-    percentage waste reserve; supply actual cuts and supplier stock lengths.
+    percentage waste reserve; supply the actual cuts and the stock lengths to consider.
 
     Kerf is charged once for every cut, including the last cut on a board, so
     two 8 ft pieces do not fit one 16 ft board when kerf_ft is above zero.
