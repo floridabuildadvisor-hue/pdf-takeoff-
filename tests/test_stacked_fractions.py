@@ -124,6 +124,30 @@ class RebuildStackedFractionsTests(unittest.TestCase):
         ])
         self.assertEqual(rebuild_stacked_fractions(records), "4'-21\r\n2\"")
 
+    def test_line_break_generated_between_whole_inches_and_the_stack(self):
+        for angle in (0, 90):
+            records = _chars([
+                ("19'-10\"", MAIN, 0), ("\r\n", None, 40), ("3", MAIN, 0), ("\r\n", None, 0),
+                ("1", SMALL, 4), ("2", SMALL, -3), ("\r\n", None, 0), ('"', MAIN, 0),
+            ], angle_deg=angle)
+            self.assertEqual(rebuild_stacked_fractions(records), "19'-10\"\r\n3 1/2\"", angle)
+
+    def test_number_on_the_line_above_is_not_taken_as_the_whole_inches(self):
+        # "BEDROOM 3" ends one line; a stacked 1/2" starts the next, far away.
+        records = _chars([
+            ("BEDROOM 3", MAIN, 0), ("\r\n", None, 300), ("1", SMALL, 4), ("\r\n", None, -4.5),
+            ("2", SMALL, -3), ('" GYP', MAIN, 0),
+        ])
+        self.assertEqual(rebuild_stacked_fractions(records), "BEDROOM 3\r\n1/2\" GYP")
+
+    def test_previous_token_elsewhere_on_the_sheet_does_not_skew_the_baseline(self):
+        # Extraction can list the inch mark of a far-away dimension right before this one.
+        far_mark = {"char": '"', "box": (700.0, 30.0, 703.0, 33.0), "size": MAIN}
+        records = [far_mark] + _chars([
+            ("69'-5", MAIN, 0), (" ", None, 0), ("1", SMALL, 4), ("16", SMALL, -3), ('"', MAIN, 0),
+        ], angle_deg=62)
+        self.assertEqual(rebuild_stacked_fractions(records), "\"69'-5 1/16\"")
+
     def test_characters_without_position_data_pass_through(self):
         records = [{"char": char, "box": None, "size": None} for char in "13'-112\""]
         self.assertEqual(rebuild_stacked_fractions(records), "13'-112\"")
