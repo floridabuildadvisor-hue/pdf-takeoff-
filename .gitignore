@@ -1,3 +1,6 @@
-
 __pycache__/
 *.py[cod]
+
+# Generated reports and plan PDFs stay local; never commit client files.
+output/
+*.pdf
