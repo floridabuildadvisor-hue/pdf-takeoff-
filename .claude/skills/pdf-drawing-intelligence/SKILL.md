@@ -32,6 +32,29 @@ lines in sections 5, 8, 11, 12, 13, 14, 16 and 17 below, which still describe `3
 - `README.md` documents CLI usage again, `.github/copilot-instructions.md` covers all three
   modules and `TAKEOFF_METHOD.md`, and a root `CLAUDE.md` points here.
 
+**Extraction fidelity changes (2026-11-17).** These supersede the matching lines in
+sections 8, 9, 11, 14 and 17 below and the probe table in the docs file:
+
+- Dimension tokens accept ASCII marks, typographic quotes (U+2019, U+201D) and primes
+  (U+2032, U+2033), and keep fraction-only inches whole (`3/4"`). Tokens are still returned
+  as printed.
+- Scale notes (`1/4" = 1'-0"`, `1" = 20'`) are left out of dimension tokens. They are not
+  read or applied as a scale.
+- Sheet numbers are returned as printed (`A1.01`, `S2.1`; dots are no longer rewritten to
+  hyphens). The label must be a whole word and the ID must start with a letter, so
+  `SHEET NOTES 1`, `SHEET 1 OF 15` and other bare numbers give `None`.
+- With no label, a code alone on its own line (`C-1`, `A-6`, `T-3`) is used when the page
+  has exactly one distinct candidate. Two different candidates give `None`.
+- Corrupt and password-protected PDFs raise `ValueError` naming the file. The CLI prints
+  `error: ...` and exits 1 with no traceback.
+- `tests/fixtures/synthetic_plan_set.pdf` (built by `tests/synthetic_pdf.py`, no project
+  data) is read by real pypdfium2 in `tests/test_real_pdf.py`, including a CLI run that
+  writes the JSON, HTML and page previews. 48 tests in total.
+- Still open: stacked fractions run together in extracted text (`13'-1 1/2"` can read
+  `13'-112"`), a token can span a line break, a cross-reference such as `SEE SHEET S-2`
+  counts as a labeled match, and the report does not say whether a sheet number came from
+  a label or from a bare code.
+
 **Status labels** (based only on code that was read and run):
 
 | Label | Meaning |
