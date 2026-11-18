@@ -36,6 +36,33 @@ class DrawingTextExtractionTests(unittest.TestCase):
     def test_extracts_sheet_number_from_labeled_title_block_text(self):
         self.assertEqual(extract_sheet_number("PROJECT: HOUSE\nSHEET NO.: A-101"), "A-101")
 
+    def test_decimal_sheet_ids_are_kept_whole_and_as_printed(self):
+        self.assertEqual(extract_sheet_number("SHEET A1.01"), "A1.01")
+        self.assertEqual(extract_sheet_number("SHEET: S2.1"), "S2.1")
+        self.assertEqual(extract_sheet_number("DWG NO. A-201.1"), "A-201.1")
+        self.assertEqual(extract_sheet_number("SHEET NUMBER\nS-3."), "S-3")
+
+    def test_words_after_the_sheet_label_are_not_sheet_numbers(self):
+        for text in (
+            "SHEET NOTES 1",
+            "SHEET NOTES:\n1. VERIFY ALL DIMENSIONS",
+            "SHEET INDEX",
+            "SEE RADON SHEET FOR ADDITIONAL REQUIREMENTS",
+            "SHEET FOR 3 BEDROOMS",
+        ):
+            self.assertIsNone(extract_sheet_number(text), text)
+
+    def test_bare_numbers_are_never_returned_as_sheet_numbers(self):
+        for text in (
+            "SHEET 1 OF 15",
+            "SHEET NO. 5",
+            "SHEET NO.5",
+            "DWG NO-12",
+            "COVER SHEET\n10-17-26",
+            "PAGE\n7\n15",
+        ):
+            self.assertIsNone(extract_sheet_number(text), text)
+
     def test_extracts_dimension_strings_without_converting_them(self):
         tokens = extract_dimension_tokens('Overall 24\'-6" and opening 36"')
         self.assertIn("24'-6\"", tokens)
