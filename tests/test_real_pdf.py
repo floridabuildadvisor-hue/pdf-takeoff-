@@ -54,6 +54,13 @@ class RealPdfAnalysisTests(unittest.TestCase):
         self.assertIn("no SHEET or DWG label", limitations)
         self.assertIn("Stacked fractions", limitations)
 
+    def test_report_still_states_what_it_does_not_read_or_check(self):
+        limitations = " ".join(self.report["limitations"])
+        for subject in ("symbols", "walls", "openings", "geometry", "quantities"):
+            self.assertIn(subject, limitations)
+        self.assertIn("no opinion on the design", limitations)
+        self.assertIn("estimator review", limitations)
+
     def test_blank_page_is_flagged_for_review(self):
         page = self.pages[1]
         self.assertTrue(page["low_text_content"])
