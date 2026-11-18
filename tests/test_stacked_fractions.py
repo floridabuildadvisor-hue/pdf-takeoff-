@@ -148,6 +148,15 @@ class RebuildStackedFractionsTests(unittest.TestCase):
         ], angle_deg=62)
         self.assertEqual(rebuild_stacked_fractions(records), "\"69'-5 1/16\"")
 
+    def test_stack_on_its_own_ignores_a_far_away_character_listed_before_it(self):
+        # The inch mark of another dimension, far to the right, comes first in the text.
+        far_mark = {"char": '"', "box": (817.0, 107.0, 819.0, 110.0), "size": MAIN}
+        records = [far_mark] + _chars([
+            ("\r\n", None, 0), ("1", SMALL, 4), ("\r\n", None, -4.5), ("2", SMALL, -3),
+            ("\r\n", None, 0), ('"', MAIN, 0),
+        ])
+        self.assertEqual(rebuild_stacked_fractions(records), "\"\r\n1/2\"")
+
     def test_characters_without_position_data_pass_through(self):
         records = [{"char": char, "box": None, "size": None} for char in "13'-112\""]
         self.assertEqual(rebuild_stacked_fractions(records), "13'-112\"")
