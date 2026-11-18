@@ -61,6 +61,22 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(self.workflow.count(path_filter), 2, path_filter)
 
 
+class EstimatorLanguageTests(unittest.TestCase):
+    """Tool code and its output use takeoff wording only, even in disclaimers."""
+
+    # Assembled from parts so this file does not match its own check.
+    BANNED = (
+        "certif", "complian", "meets " + "code", "approv", "engineer",
+        "structural " + "audit", "mechanical " + "audit",
+    )
+
+    def test_python_sources_contain_no_regulatory_wording(self):
+        for source in sorted(REPO_ROOT.glob("*.py")):
+            text = source.read_text(encoding="utf-8").lower()
+            for term in self.BANNED:
+                self.assertNotIn(term, text, f"{source.name} contains '{term}'")
+
+
 class GitIndexTests(unittest.TestCase):
     def test_index_has_no_gitlink_entries(self):
         try:

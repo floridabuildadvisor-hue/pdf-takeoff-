@@ -2,7 +2,7 @@
 """Inspect construction PDF pages and create a traceable diagnostic report.
 
 This module extracts PDF text and page metadata. It does not perform OCR,
-interpret engineering intent, or certify dimensions and quantities.
+interpret design intent, or confirm dimensions and quantities.
 """
 
 from __future__ import annotations
@@ -255,7 +255,8 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
             "check fractional dimensions against the drawing.",
             "A sheet number with no SHEET or DWG label is taken from a lone code on its own line; "
             "check it against the title block.",
-            "No symbols, walls, openings, geometry, quantities, or code compliance are verified by this report.",
+            "No symbols, walls, openings, geometry or quantities are read or checked by this report, "
+            "and it gives no opinion on the design.",
             "Every page remains subject to estimator review before takeoff use.",
         ],
     }
