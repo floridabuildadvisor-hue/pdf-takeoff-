@@ -46,13 +46,19 @@ chose them.
    - no quantity is priced twice;
    - waste is on its own line with a source.
 
-Use Bash only to recompute numbers and for read-only commands.
+Use Bash only to recompute numbers and for read-only commands. Never write a file
+anywhere, not even a temporary one: run a script with `python3 -c` or a heredoc.
 
 ## Return
 
 - The planning block, with the items checked and how they were chosen.
-- The variance table.
-- Findings, most severe first. For each: the item, the sheet, what differs, and the evidence.
+- **The evidence** (`docs/agent-system.md` section 9). You write no files, so the variance
+  table is the record. It has one `L2-` row per item checked, with:
+  - `based_on`: the record you checked;
+  - `file`, `page`, `as_printed` and `bbox` for each dimension you read yourself;
+  - `expected`: your recount. `found`: the producer's value;
+  - the formula or command that gives your recount, so anyone can run it again.
+- Findings, most severe first. For each: the `L2-` row, the sheet, and what differs.
 - Omissions and conflicts.
 - `Not checked`: what you could not review, and why.
 - One line: `No differences found in the items checked` or `Differences found`.

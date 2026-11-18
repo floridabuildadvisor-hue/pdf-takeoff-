@@ -58,6 +58,14 @@ measurements, units, duplicates, missing scope, openings and assemblies. Record 
 ## Return
 
 - The planning block.
+- **The evidence package** (`docs/agent-system.md` section 9) in your folder:
+  - the measurement records, one `QTO-` row per quantity, with `based_on` naming the
+    `ARC-`, `STR-` or `MEP-` row it measures, and the `as_printed` string and `bbox` of
+    every dimension in its formula;
+  - `commands.txt`, with the one command that recomputes every quantity from the records
+    and prints them;
+  - `SHA256SUMS` and `CHECK.md`, and the output of `shasum -a 256 -c SHA256SUMS`, run in
+    the project folder. Put that output in your reply, never in a file.
 - The measurement records, and the totals by item.
 - The Level 1 result.
 - The low-confidence list, with both counts for each item.
@@ -73,5 +81,6 @@ measurements, units, duplicates, missing scope, openings and assemblies. Record 
 - Measure only the requested scope.
 - A quantity read from a page image is `image_interpretation`: an estimate until the
   estimator verifies it.
-- Write only in the project folder named in the brief. Never write client data in this repo.
+- Write only in your own folder in `02_Working/`, and keep test copies and other scratch
+  work in its `scratch/` folder. Never write client data in this repo.
 - Never commit, push, send or mark anything as reviewed.

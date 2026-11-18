@@ -49,6 +49,14 @@ every price has a source and date, no quantity is priced twice, and the totals a
 ## Return
 
 - The planning block.
+- **The evidence package** (`docs/agent-system.md` section 9) in your folder:
+  - the estimate, one `EST-` row per line, with `based_on` naming the `QTO-` record it
+    prices. The price's `file`, `page`, `as_printed` and `bbox` point to the quote or
+    price sheet it came from. For a text file, `page` is empty and `bbox` is `line <n>`;
+  - `commands.txt`, with the one command that recomputes every extension and total from
+    the rows and prints them;
+  - `SHA256SUMS` and `CHECK.md`, and the output of `shasum -a 256 -c SHA256SUMS`, run in
+    the project folder. Put that output in your reply, never in a file.
 - The priced lines by cost type, and the totals.
 - The source and date for each price.
 - The `PRICE REQUIRED` list.
@@ -62,5 +70,6 @@ every price has a source and date, no quantity is priced twice, and the totals a
 - **Estimating only.** No purchasing, no supplier ordering, and no optimizing against
   supplier stock. A supplier assumption never replaces a quantity from the plans.
 - The estimate is a DRAFT. It is a priced inventory, never a guaranteed cost.
-- Write only in the project folder named in the brief. Never write client data in this repo.
+- Write only in your own folder in `02_Working/`, and keep test copies and other scratch
+  work in its `scratch/` folder. Never write client data in this repo.
 - Never commit, push, send or mark anything as reviewed.

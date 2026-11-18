@@ -52,6 +52,14 @@ Before you return, check your own work:
 ## Return
 
 - The planning block.
+- **The evidence package** (`docs/agent-system.md` section 9) in your folder:
+  - one `RPT-` row per number in each document, with `based_on` naming the `EST-` or
+    `QTO-` row it comes from, and where it appears: the document, page and line or cell;
+  - `commands.txt`, with the one command that rebuilds every document total from the
+    reviewed records and prints them;
+  - `SHA256SUMS`, which includes every DRAFT document, and `CHECK.md`;
+  - the output of `shasum -a 256 -c SHA256SUMS`, run in the project folder. Put it in
+    your reply, never in a file.
 - The list of files you built, with their paths.
 - The reconciliation: each document total against the reviewed records.
 - **Every wording change you made** to text the owner supplied, with the original beside it.
@@ -66,5 +74,6 @@ Before you return, check your own work:
 - **DRAFT until the owner records the review.** Never send, deliver, invoice or copy
   anything to a delivered folder. Never set a reviewer name.
 - Scope is only what was requested.
-- Write only in the project folder named in the brief. Never write client data in this repo.
+- Write only in your own folder in `02_Working/`, and keep test copies and other scratch
+  work in its `scratch/` folder. Never write client data in this repo.
 - Never commit or push.

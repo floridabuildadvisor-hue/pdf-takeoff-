@@ -29,8 +29,11 @@ the result it must give.
   `python3`, because `python` may not exist on this Mac.
 - **One test:**
   `python3 -m unittest tests.test_vector_takeoff.VectorTakeoffTests.test_stud_count_includes_both_wall_ends -v`
-- **Baseline at `35e9194`:** 14 tests, 7 for `pdf_intelligence` and 7 for `vector_takeoff`.
-  If you get a different count, report it rather than assume.
+- **Baseline:** 52 tests. That is 7 for `pdf_intelligence`, 7 for `vector_takeoff`, and 38
+  checks on the subagent files in `test_agent_definitions.py`. If you get a different count,
+  report it rather than assume.
+- **Subagent files:** when an agent or `docs/agent-system.md` changes, run the suite. Update
+  `test_agent_definitions.py` only when the owner approved the change it guards.
 - **Python versions:** 3.9 locally, 3.11 in CI (`.github/workflows/validate.yml`).
 - **CI path filter:** CI runs only for `vector_takeoff.py`, `pdf_intelligence.py`, `tests/**`
   and the workflow file. Changes outside the filter need a manual run, and the PR must

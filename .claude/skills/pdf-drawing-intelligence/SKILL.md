@@ -103,6 +103,7 @@ TAKEOFF_METHOD.md          # the owner's takeoff method (see section 2)
 README.md                  # short overview + planned workflow; no CLI usage any more
 tests/test_pdf_intelligence.py   # 7 tests (pypdfium2 mocked)
 tests/test_vector_takeoff.py     # 7 tests
+tests/test_agent_definitions.py  # 38 checks on the subagent files (no agent is run)
 .github/workflows/validate.yml   # unittest on Python 3.11, path-filtered
 .github/copilot-instructions.md  # instructions for GitHub Copilot (out of date, see section 14)
 requirements.txt           # numpy, opencv-python-headless, pypdfium2 (unpinned)
@@ -237,8 +238,11 @@ the owner asks.
 - **Framework:** standard-library `unittest`. There is no pytest and no test config file. Tests
   live in `tests/` and import modules from the repo root.
 - **Command (from the repo root):** `python3 -m unittest discover -s tests -v`
-- **Baseline:** 14 tests pass at `35e9194`. That is 7 in `test_pdf_intelligence.py` and 7 in
+- **Baseline:** 14 code tests pass at `35e9194`. That is 7 in `test_pdf_intelligence.py` and 7 in
   `test_vector_takeoff.py`, run on Python 3.9.6 locally on 2026-11-10. CI runs Python 3.11.
+- **Subagent checks:** `test_agent_definitions.py` adds 38 tests, so the full suite runs 52.
+  They read the files in `.claude/agents/` and `docs/agent-system.md`. They do not run any
+  agent, so agent behavior on a plan set is still NOT VERIFIED.
 - **Coverage today:** classification (3 tests), sheet number (1), dimension tokens (1), HTML
   escaping and preview links (1), and `analyze_pdf` with a mocked 2-page document (1), plus
   the `vector_takeoff.py` helpers (7).
@@ -430,8 +434,18 @@ against the gates, and gives the owner one decision before anything is changed o
 | [`qa-test-runner`](../../agents/qa-test-runner.md) | Failing test first, the real suite, the actual counts | Tests |
 | [`takeoff-domain-reviewer`](../../agents/takeoff-domain-reviewer.md) | Business boundaries and estimator wording | No |
 
-Status: the subagents are a way of working. They add no code capability, and they have not
-been run on a real plan set (NOT VERIFIED). A quantity an agent reads from a drawing is
+Status: the subagents are a way of working. They add no code capability. Each project agent
+passed one trial on a synthetic plan set (2026-11-17), but none has been run on a real plan
+set (NOT VERIFIED). A quantity an agent reads from a drawing is
 unverified until the estimator checks it.
+
+Every project agent must leave an evidence package (`docs/agent-system.md` section 9): one
+row per item with its own ID, the IDs it is based on, the string as printed and where it is
+on the sheet, the commands it ran, and a `SHA256SUMS` file that `shasum -a 256 -c` can
+check. A second trial on the same synthetic set (2026-11-17) ran all ten agents with these
+rules. Every result could be checked from the files alone, and the QA reviewer and the
+orchestrator each caught 3 of 3 planted defects. The special cases, the rule on where
+files go and the second Level 2 pass came out of that trial, and no agent has run with
+them yet (NOT VERIFIED).
 
 No subagent commits, pushes, opens PRs, sends, delivers or authorizes. The owner does.

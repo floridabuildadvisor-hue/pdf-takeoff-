@@ -34,7 +34,9 @@ read and write, and acceptance criteria.
 1. **Inventory the files.** For each: the name, the page count, and whether it opens. Never
    edit a received file. Work on a copy.
 2. **Run the page inventory:** `python3 pdf_intelligence.py <set>.pdf`. Write its output in
-   the project folder, never in this repo.
+   your folder in `02_Working/`, never in this repo. Keep test copies and other scratch work
+   in its `scratch/` folder. Keep every file it writes, including the page
+   previews the HTML report links to. Never delete a file the brief did not ask you to.
 3. **Build the sheet index.** One row per page:
    - the page number, the sheet number as printed, the title and the discipline;
    - the revision and its date, as printed;
@@ -116,6 +118,14 @@ Before you return, check your own work:
 
 - The planning block.
 - **On a project:**
+  - **the evidence package** (`docs/agent-system.md` section 9) in your folder:
+    - the sheet index and the scale register, one `DOC-` row per sheet and per viewport,
+      with the `as_printed` string and `bbox` of each sheet number, title, revision and
+      scale note;
+    - `commands.txt` with the exact `pdf_intelligence.py` command, and `SHA256SUMS`,
+      which includes every received PDF;
+    - `CHECK.md`, and the output of `shasum -a 256 -c SHA256SUMS`, run in the project
+      folder. Put that output in your reply, never in a file;
   - the file inventory and the sheet index;
   - the scale and units per sheet and viewport;
   - the pages that need OCR or visual review;

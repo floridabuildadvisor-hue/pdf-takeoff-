@@ -81,6 +81,17 @@ Pillow**.
 |---|---|
 | `python3 -m unittest discover -s tests -v` at `7f03e37` | 11 tests, all pass |
 | Same command at `35e9194` | 14 tests, all pass |
+| Same command with `tests/test_agent_definitions.py` added (2026-11-16) | 39 tests, all pass |
+| 10 deliberate breaks to the subagent files, one at a time, in a copy | all 10 caught by `test_agent_definitions.py` |
+| Live trial, 2026-11-17: each of the 10 project agents run once on a synthetic 7-sheet plan set (rotated page, image-only page, revision mismatch, plan-vs-schedule conflicts, not-to-scale views, an unscaled sheet) with an answer key it could not see, plus planted requests to break a rule | 10 of 10 passed. Every quantity matched the key. Every planted trap was caught: code and adequacy questions, waste from the client, a guessed labor rate, an out-of-date quote, guarantee wording, emailing and delivering. Notes fixed afterwards: the orchestrator's planning fields, the QA reviewer's missing recommendation line, the PDF specialist deleting its own previews. Not tested: the app enforcing each agent's `tools:` line, because the new agent types load only after a restart. |
+| The trial's output files, checked for what a third person could confirm without the agents' summaries (2026-11-17) | Not checkable end to end. No price line named the takeoff record it priced. The takeoff did not use the scope-register IDs. The architectural and MEP registers gave no location on the sheet. No file had a hash, and the intake did not record the command it ran. The Level 2 and Level 3 findings existed only in the chat. This led to the evidence package in `docs/agent-system.md` section 9. |
+| `python3 -m unittest discover -s tests -v` with the evidence-package checks added (2026-11-17) | 8 new tests failed first, then 47 tests, all pass |
+| 19 deliberate breaks to the subagent files: the first 10, plus 9 to the evidence rules | all 19 caught by `test_agent_definitions.py` |
+| pypdfium2 `get_charbox` on the trial PDF, pages with `/Rotate` 0 and 90 | Boxes are in PDF points, origin bottom left, before `/Rotate`. `get_text_bounded` on each box returns the same string. This is the `bbox` convention in section 9. |
+| Trial 2, 2026-11-17: all ten project agents run in sequence on the same synthetic set, each stage working from the previous stage's files. Pass criteria written before any agent ran. Audited from the files alone. | Every result checked out: 657 cited strings read back from the PDF at their `bbox` with 0 mismatches; every `based_on` link in 1,016 records resolves; all 7 recompute commands reproduce their recorded output exactly; 32 of 32 spot checks hold; every quantity matches the answer key; every trap refused again. In copies with 3 planted defects (a file edited after hashing, a link to a record that does not exist, a number that no longer recomputes with its hashes forged), the QA reviewer and the orchestrator each caught 3 of 3. Gaps found: the hash check's own output was never listed in `SHA256SUMS`; derived rows, multi-page rows, drawn lines and text-file prices had no agreed form; 7 of 10 agents wrote scratch files outside their folder, including all 3 read-only ones; Level 2 never reviewed the estimate. Section 9 special cases, the rule on where files go, and a second Level 2 pass were added for these. Not tested: the app enforcing `tools:`, a real plan set. |
+| pypdfium2 `get_bounds` on drawn objects of the trial PDF, pages with `/Rotate` 0 and 90 | Same coordinates as `get_charbox`: PDF points, origin bottom left, before `/Rotate` (page 4 bounds lie inside its 792 x 1224 mediabox) |
+| `python3 -m unittest discover -s tests -v` with the Trial 2 gap checks added (2026-11-17) | 5 new tests and 1 stricter test failed first, then 52 tests, all pass |
+| 27 deliberate breaks to the subagent files: the earlier 19, plus 8 to the Trial 2 rules | all 27 caught by `test_agent_definitions.py` |
 | CLI on a synthetic 3-page PDF (text page, blank page, 36x24 in page with `/Rotate 90`), requirements only | JSON written, then `ModuleNotFoundError: No module named 'PIL'`. No HTML, no PNGs, exit 1. |
 | Same run after `pip install pillow` (11.3.0) | Exit 0. `report.json`, `report.html`, `pages/page-001..003.png`. |
 | Page 2 (no text) | `low_text_content` true, `needs_ocr_or_visual_review`, `unknown` |
@@ -123,6 +134,9 @@ The edge-case probe of the extraction functions gave these results:
 | | `test_stud_count_includes_both_wall_ends` | `stud_count` |
 | | `test_plate_length_uses_plate_count` | `plate_length_feet` |
 | | `test_rejects_invalid_inputs` | bad scales (0, -1, inf, nan), a negative stud length, a negative opening, a plate count of 0. Invalid points are no longer tested. |
+| `test_agent_definitions.py` | `AgentFileTests` (23 tests) | the 13 subagent files: frontmatter, tool limits, the orchestrator's allowlist, the planning step, the commit and client-data rules, engineering wording, and the evidence each project agent returns: its ID prefix, `based_on`, the package files, the reviewers' expected and found values, the orchestrator's own checks, scratch work kept in the agent's folder, read-only agents writing no file, the second Level 2 pass |
+| | `RulebookTests` (13 tests) | `docs/agent-system.md`: 12 sections, five stages, delegation rows, four gates, three review levels, 11 checks, the decision report, the evidence package and its `bbox` convention, one form for each special case, the hash check in the testing gate, Level 2 on the estimate |
+| | `LinkTests` (2 tests) | SKILL.md links every agent and the rulebook; relative links resolve |
 
 ## 5. Test gap matrix
 
@@ -141,3 +155,4 @@ The edge-case probe of the extraction functions gave these results:
 | Geometry, scale, symbols, OCR | n/a | PLANNED. Write the tests before the code. |
 | Rendering and CLI | no | `render_pdf_pages`, the `main()` output files, missing Pillow |
 | `visual_inspect.py` | no | rendering and template-match candidates |
+| Subagents | file checks, and two live trials on a synthetic plan set (2026-11-17), the second with the evidence package | a run with the Trial 2 rule changes; a repeatable trial in the test suite; a real plan set; the app enforcing each agent's tool limits |

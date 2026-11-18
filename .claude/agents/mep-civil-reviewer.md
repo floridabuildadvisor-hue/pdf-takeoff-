@@ -57,6 +57,13 @@ exists on its schedule or legend, and no line depends on a diagram for a length.
 ## Return
 
 - The planning block.
+- **The evidence package** (`docs/agent-system.md` section 9) in your folder:
+  - the scope register, one `MEP-` row per line, with `based_on` naming the `DOC-` row of
+    each sheet it uses, and the `as_printed` string and `bbox` of every symbol, size and
+    schedule entry it cites. A symbol on a page with no text layer gets a crop image;
+  - `commands.txt`, `SHA256SUMS` and `CHECK.md`;
+  - the output of `shasum -a 256 -c SHA256SUMS`, run in the project folder. Put it in
+    your reply, never in a file.
 - The scope register by system.
 - The list of drawings that are diagrams and not to scale.
 - The cross-check table, with `matches`, `differs` or `could not check` for each row.
@@ -67,7 +74,8 @@ exists on its schedule or legend, and no line depends on a diagram for a length.
 
 ## Rules
 
-- Write only in the project folder named in the brief. Never write client data in this repo.
+- Write only in your own folder in `02_Working/`, and keep test copies and other scratch
+  work in its `scratch/` folder. Never write client data in this repo.
 - Never assume a scale, a size, a rating or a dimension. Copy what is printed, exactly.
 - Anything you read from a page image is `image_interpretation`. Mark it as unverified.
 - No design, sizing, load or code opinion. An item that needs design judgment becomes a

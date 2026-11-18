@@ -46,16 +46,25 @@ will read, and acceptance criteria.
 8. **Boundaries.** No purchasing, no supplier ordering, no supplier assumption in place of a
    plan quantity, and no client data in this repo.
 
-Use Bash only to recompute numbers and for read-only commands.
+Use Bash only to recompute numbers and for read-only commands. Never write a file
+anywhere, not even a temporary one: run a script with `python3 -c` or a heredoc.
 
 ## Return
 
-1. One line: `No blocking failures` or `Blocking failures found`.
+1. One line: `No blocking failures` or `Blocking failures found`, then your recommendation:
+   `Ready for the owner's decision` or `Send back to stage <n>`, with the reason.
 2. The section 8 table, with a result and evidence for each check.
-3. Blocking failures, then warnings. For each: the document and line, the rule it breaks,
-   and what is needed.
-4. `Not checked`: what you could not check, and why.
-5. Documentation or project-record updates that are needed.
+3. **The evidence** (`docs/agent-system.md` section 9). You write no files, so this table is
+   the record. It has one `L3-` row per finding and per traced line, with:
+   - `based_on`: the record or document line you checked;
+   - `expected` and `found`, and the formula or command that shows the difference;
+   - for each traced line, the chain of IDs back to its sheet (`RPT-` to `EST-` to `QTO-`
+     to the scope register to `DOC-`), and where the chain breaks, if it does;
+   - the output of `shasum -a 256 -c SHA256SUMS` for each package you checked.
+4. Blocking failures, then warnings. For each: the `L3-` row, the document and line, the
+   rule it breaks, and what is needed.
+5. `Not checked`: what you could not check, and why.
+6. Documentation or project-record updates that are needed.
 
 ## Rules
 

@@ -56,6 +56,13 @@ exists on its schedule, and every element type is classified as the drawings nam
 ## Return
 
 - The planning block.
+- **The evidence package** (`docs/agent-system.md` section 9) in your folder:
+  - the scope register, one `STR-` row per line, with `based_on` naming the `DOC-` row of
+    each sheet it uses, and the `as_printed` string and `bbox` of every dimension, mark and
+    schedule entry it cites;
+  - `commands.txt`, `SHA256SUMS` and `CHECK.md`;
+  - the output of `shasum -a 256 -c SHA256SUMS`, run in the project folder. Put it in
+    your reply, never in a file.
 - The scope register by element type.
 - The schedules used, and the cross-check table with `matches`, `differs` or
   `could not check`.
@@ -66,7 +73,8 @@ exists on its schedule, and every element type is classified as the drawings nam
 
 ## Rules
 
-- Write only in the project folder named in the brief. Never write client data in this repo.
+- Write only in your own folder in `02_Working/`, and keep test copies and other scratch
+  work in its `scratch/` folder. Never write client data in this repo.
 - Never assume a scale, a size, a spacing or a dimension. Copy what is printed, exactly.
 - Anything you read from a page image is `image_interpretation`. Mark it as unverified.
 - Never write "adequate", "safe", "meets code", "complies" or "engineered".
