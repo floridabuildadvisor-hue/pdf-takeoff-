@@ -56,6 +56,33 @@ def calculate_plate_lf(
     return length * plate_courses * (1 + waste / 100)
 
 
+def plate_lf_breakdown(
+    wall_length_ft: float,
+    plate_courses: int,
+    waste_percent: float = 0,
+) -> dict:
+    """Return wall-plate linear feet with the waste allowance kept separate.
+
+    ``measured_lf`` is wall length x plate courses, the quantity that traces to
+    the drawing. ``waste_allowance_lf`` is an allowance chosen by the estimator,
+    not something measured, and is zero unless a percentage is given. The
+    ``formula`` string is ready for a BOQ line. The same limits as
+    calculate_plate_lf apply.
+    """
+    total = calculate_plate_lf(wall_length_ft, plate_courses, waste_percent)
+    measured = calculate_plate_lf(wall_length_ft, plate_courses, 0)
+    waste_text = f"+ {waste_percent:g}% waste allowance = {total:g} LF" if waste_percent else "no waste allowance"
+    return {
+        "wall_length_ft": wall_length_ft,
+        "plate_courses": plate_courses,
+        "measured_lf": measured,
+        "waste_percent": waste_percent,
+        "waste_allowance_lf": total - measured,
+        "total_lf": total,
+        "formula": f"{wall_length_ft:g} LF x {plate_courses} courses = {measured:g} LF measured; {waste_text}",
+    }
+
+
 _EPSILON = 1e-9
 _EXACT_SEARCH_MAX_CUTS = 12
 
