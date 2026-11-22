@@ -2,7 +2,7 @@
 """Inspect construction PDF pages and create a traceable diagnostic report.
 
 This module extracts PDF text and page metadata. It does not perform OCR,
-interpret engineering intent, or certify dimensions and quantities.
+interpret design intent, or confirm dimensions and quantities.
 """
 
 from __future__ import annotations
@@ -14,6 +14,8 @@ from html import escape
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+from stacked_fractions import page_text_with_fractions
 
 
 _CLASSIFICATION_TERMS = {
@@ -47,18 +49,42 @@ _CLASSIFICATION_TERMS = {
     ),
 }
 
+# A sheet ID always starts with a discipline letter: A-101, S2.1, A1.01, FP-3.
+# A number on its own (a page count, a date, a note number) is never a sheet ID.
+_SHEET_ID = r"(?!NO[-.]?\d)[A-Z]{1,3}[-.]?\d{1,4}(?:\.\d{1,3})?[A-Z]?"
+
 _SHEET_NUMBER_RE = re.compile(
-    r"(?:SHEET(?:\s*(?:NO\.?|NUMBER))?|DWG\.?\s*NO\.?)"
-    r"\s*[:#-]?\s*([A-Z]{0,3}\s*[-.]?\s*\d{1,4}[A-Z]?)",
+    r"\b(?:SHEET(?:\s*(?:NO\b\.?|NUMBER\b))?|DWG\b\.?\s*NO\b\.?)"
+    rf"\s*[:#-]?\s*({_SHEET_ID})(?![A-Z0-9])",
     re.IGNORECASE,
 )
 
+# An unlabeled title-block code: the whole line is the code, with a one- or
+# two-letter prefix (C-1, A-6, S201, FP-3, A1.01).
+_BARE_SHEET_CODE_RE = re.compile(
+    r"^[ \t]*([A-Z]{1,2}[-.]?\d{1,3}(?:\.\d{1,2})?[A-Z]?)[ \t]*$",
+    re.MULTILINE,
+)
+
+# Foot and inch marks as they come out of PDF text extraction: ASCII, typographic
+# quotes (U+2019, U+201D) and primes (U+2032, U+2033).
+_FOOT_MARK = "['\u2019\u2032]"
+_INCH_MARK = '["\u201d\u2033]'
+
 _DIMENSION_RE = re.compile(
-    r"(?<![\w.])(?:"
-    r"\d+(?:\.\d+)?\s*'\s*-\s*\d+(?:\s+\d+/\d+|\.\d+)?\s*\"?"
-    r"|\d+(?:\.\d+)?\s*'"
-    r"|\d+(?:\s+\d+/\d+|\.\d+)?\s*\""
+    r"(?<![\w./])(?:"
+    rf"\d+(?:\.\d+)?\s*{_FOOT_MARK}\s*-\s*\d+(?:\s+\d+/\d+|\.\d+)?\s*{_INCH_MARK}?"
+    rf"|\d+(?:\.\d+)?\s*{_FOOT_MARK}"
+    rf"|\d+(?:\s+\d+/\d+|/\d+|\.\d+)?\s*{_INCH_MARK}"
     r")"
+)
+
+# A scale note such as 1/4" = 1'-0" or 1" = 20'. It states a drawing scale, not
+# a dimension of anything drawn.
+_SCALE_NOTE_RE = re.compile(
+    rf"(?<![\w./])\d+(?:\s+\d+/\d+|/\d+|\.\d+)?\s*{_INCH_MARK}\s*=\s*"
+    rf"\d+(?:\.\d+)?\s*{_FOOT_MARK}"
+    rf"(?:\s*-\s*\d+(?:\s+\d+/\d+|\.\d+)?\s*{_INCH_MARK}?)?"
 )
 
 
@@ -94,16 +120,29 @@ def classify_sheet(text: str) -> dict[str, Any]:
 
 
 def extract_sheet_number(text: str) -> str | None:
-    """Extract a sheet identifier only when it follows a recognized label."""
+    """Extract a sheet identifier, as printed.
+
+    A code that follows a recognized label (SHEET, SHEET NO., DWG NO.) wins.
+    Without one, a code that stands alone on its own line is used, but only
+    when the page has exactly one such code. Two different candidates are
+    ambiguous and give None. A number without a letter prefix is never returned.
+    """
     match = _SHEET_NUMBER_RE.search(text)
-    if not match:
-        return None
-    return re.sub(r"\s+", "", match.group(1)).replace(".", "-")
+    if match:
+        return match.group(1)
+    bare_codes = set(_BARE_SHEET_CODE_RE.findall(text.replace("\r", "\n")))
+    if len(bare_codes) == 1:
+        return bare_codes.pop()
+    return None
 
 
 def extract_dimension_tokens(text: str) -> list[str]:
-    """Return dimension-like text exactly as printed; do not convert units."""
-    return [match.group(0).strip() for match in _DIMENSION_RE.finditer(text)]
+    """Return dimension-like text exactly as printed; do not convert units.
+
+    Scale notes are left out. They are not read or applied as a scale either.
+    """
+    without_scale_notes = _SCALE_NOTE_RE.sub(" ", text)
+    return [match.group(0).strip() for match in _DIMENSION_RE.finditer(without_scale_notes)]
 
 
 def _page_dimensions(width_pt: float, height_pt: float) -> dict[str, Any]:
@@ -122,6 +161,22 @@ def _page_dimensions(width_pt: float, height_pt: float) -> dict[str, Any]:
     }
 
 
+def _open_document(pdfium: Any, path: Path) -> Any:
+    """Open a PDF and turn pdfium load failures into a clear ValueError."""
+    try:
+        return pdfium.PdfDocument(str(path))
+    except pdfium.PdfiumError as exc:
+        if "password" in str(exc).lower():
+            raise ValueError(
+                f"Could not open {path.name}: the PDF is password-protected. "
+                "Ask the sender for an unprotected copy."
+            ) from exc
+        raise ValueError(
+            f"Could not open {path.name}: it is not a readable PDF. "
+            "The file may be damaged or incomplete."
+        ) from exc
+
+
 def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any]:
     """Analyze each page's extractable text and physical page dimensions."""
     path = Path(pdf_path)
@@ -138,7 +193,7 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
             "'python -m pip install -r requirements.txt'."
         ) from exc
 
-    document = pdfium.PdfDocument(str(path))
+    document = _open_document(pdfium, path)
     pages: list[dict[str, Any]] = []
     try:
         try:
@@ -153,7 +208,9 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
                 width_pt, height_pt = page.get_size()
                 rotation = page.get_rotation() if hasattr(page, "get_rotation") else 0
                 text_page = page.get_textpage()
-                extracted_text = text_page.get_text_range() or ""
+                extracted_text = page_text_with_fractions(
+                    text_page, text_page.get_text_range() or "",
+                )
                 char_count = len(re.sub(r"\s+", "", extracted_text))
                 low_text_content = char_count < min_text_chars
                 pages.append({
@@ -197,7 +254,15 @@ def analyze_pdf(pdf_path: str | Path, min_text_chars: int = 20) -> dict[str, Any
             "Text extraction only reads text embedded in the PDF; image-only text requires OCR.",
             "Sheet classification is keyword-based and must be checked against the drawing.",
             "Dimension tokens are returned as printed strings and are not interpreted or scale-verified.",
-            "No symbols, walls, openings, geometry, quantities, or code compliance are verified by this report.",
+            "Scale notes are left out of dimension tokens and are not read or applied as a scale.",
+            "Stacked fractions are reassembled from character positions (a 1 over a 2 is written 1/2). "
+            "A stack that cannot be read clearly is left run together (1 1/2 as 112), and text listed "
+            "out of order can separate a fraction from its whole inches; "
+            "check fractional dimensions against the drawing.",
+            "A sheet number with no SHEET or DWG label is taken from a lone code on its own line; "
+            "check it against the title block.",
+            "No symbols, walls, openings, geometry or quantities are read or checked by this report, "
+            "and it gives no opinion on the design.",
             "Every page remains subject to estimator review before takeoff use.",
         ],
     }
@@ -293,7 +358,7 @@ def render_pdf_pages(
 
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
-    document = pdfium.PdfDocument(str(pdf_path))
+    document = _open_document(pdfium, Path(pdf_path))
     rendered: list[Path] = []
     try:
         for page_index in range(len(document)):
@@ -328,14 +393,17 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    report = analyze_pdf(args.pdf, min_text_chars=args.min_text_chars)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    try:
+        report = analyze_pdf(args.pdf, min_text_chars=args.min_text_chars)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
-    rendered = render_pdf_pages(args.pdf, args.output.parent / "pages", dpi=args.dpi)
-    rendered_map = {str(index + 1): f"pages/{path.name}" for index, path in enumerate(rendered)}
-    html_path = args.output.with_suffix(".html")
-    html_path.write_text(build_html_report(report, rendered_map), encoding="utf-8")
+        rendered = render_pdf_pages(args.pdf, args.output.parent / "pages", dpi=args.dpi)
+        rendered_map = {str(index + 1): f"pages/{path.name}" for index, path in enumerate(rendered)}
+        html_path = args.output.with_suffix(".html")
+        html_path.write_text(build_html_report(report, rendered_map), encoding="utf-8")
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise SystemExit(f"error: {exc}") from exc
 
     print(f"Analyzed {report['page_count']} page(s) from {args.pdf}")
     print(f"Pages by classification: {report['summary']['pages_by_classification']}")
