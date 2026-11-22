@@ -29,17 +29,18 @@ the result it must give.
   `python3`, because `python` may not exist on this Mac.
 - **One test:**
   `python3 -m unittest tests.test_vector_takeoff.VectorTakeoffTests.test_stud_count_includes_both_wall_ends -v`
-- **Baseline:** 52 tests. That is 7 for `pdf_intelligence`, 7 for `vector_takeoff`, and 38
-  checks on the subagent files in `test_agent_definitions.py`. If you get a different count,
-  report it rather than assume.
+- **Baseline:** 146 tests, all passing, on `main` at `274b20b` (2026-11-17). 38 of them are
+  the checks on the subagent files in `test_agent_definitions.py`. If you get a different
+  count, report it rather than assume.
 - **Subagent files:** when an agent or `docs/agent-system.md` changes, run the suite. Update
   `test_agent_definitions.py` only when the owner approved the change it guards.
 - **Python versions:** 3.9 locally, 3.11 in CI (`.github/workflows/validate.yml`).
-- **CI path filter:** CI runs only for `vector_takeoff.py`, `pdf_intelligence.py`, `tests/**`
-  and the workflow file. Changes outside the filter need a manual run, and the PR must
-  report it.
-- **Mocks:** the `pdf_intelligence` tests mock pypdfium2 through `sys.modules`. Keep tests
-  runnable without PDF libraries where practical.
+- **CI path filter:** CI runs for any `*.py` file, `tests/**`, `requirements.txt`,
+  `.claude/**`, `docs/**` and the workflow file. A change outside the filter needs a manual
+  run, and the PR must report it.
+- **Mocks:** the `pdf_intelligence` unit tests mock pypdfium2 through `sys.modules`.
+  `test_real_pdf.py` reads a synthetic PDF with real pypdfium2, which CI installs from
+  `requirements.txt`. Keep unit tests runnable without PDF libraries where practical.
 
 ## TDD loop
 
@@ -66,14 +67,10 @@ the result it must give.
   client data, because the repo is public. Label them as non-project data, with known-good
   answers (`TAKEOFF_METHOD.md` section 9).
 - **Gaps to close first:**
-  - a real-PDF fixture;
-  - rotated pages at 90°, 180° and 270°;
-  - clear errors for corrupt or encrypted PDFs;
-  - Unicode foot and inch marks;
-  - decimal sheet IDs;
-  - the CLI and rendering, including missing Pillow;
+  - rotated pages at 180° and 270° (90° is covered);
   - `visual_inspect.py`;
-  - invalid points in `vector_takeoff.py`.
+  - invalid points in `vector_takeoff.py`;
+  - the open extraction cases listed in SKILL.md's status notes.
 - Never say tests pass unless you ran them in this task.
 
 ## Report

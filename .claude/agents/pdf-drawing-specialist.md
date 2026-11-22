@@ -79,26 +79,33 @@ read and write, and acceptance criteria.
 
 ## Known pitfalls
 
-These were verified on this repo on 2026-11-10:
-- pdfium can return `’` (U+2019) or the primes `′ ″` as foot and inch marks. The ASCII-only
-  regex then breaks the token: `24’-6"` becomes `6"`.
-- Scale notes such as `1/4" = 1'-0"` produce dimension-like tokens.
-- Decimal sheet IDs are truncated (`A1.01` becomes `A1`), and `SHEET NOTES 1` gives `TES1`.
+These were checked against the code on `main` at `64870e8` on 2026-11-17:
+- **Sheet numbers** are returned as printed (`A1.01`, `S2.1`). `SHEET NOTES 1`,
+  `SHEET 1 OF 15` and other bare numbers give `None`. With no label, a code alone on its own
+  line (`A-6`) is used when it is the only candidate on the page. A cross-reference such as
+  `SEE SHEET S-2` still counts as a labeled match, and the report does not say whether a
+  number came from a label or from a bare code. Check every one against the title block.
+- **Dimension tokens** keep ASCII marks, `’` (U+2019) and the primes `′ ″` as printed, and
+  scale notes are left out. A token can still run across a line break.
+- **Stacked fractions** are rejoined by `stacked_fractions.py` (`13'-1 1/2"`), except when
+  the fraction is listed away from its whole inches, has no neighbouring characters in
+  rotated text, or is drawn as outlined shapes. Check fractional dimensions against the
+  drawing.
 - Page size is reported as displayed, after `/Rotate`. A 90° rotation was verified; 180° and
   270° are NOT VERIFIED.
 
 Lessons from the dashboard project. These are **not implemented here**:
 - Architect-exported PDFs often have no layers (OCGs), so walls were found by stroke width.
-- Stacked fractions come through as separate text spans.
 - Some schedules are outlined text and can't be extracted as text.
-- Vertical text and inch-only strings need their own handling.
+- Vertical text needs its own handling. Inch-only fractions such as `3/4"` are now kept
+  whole; other inch-only strings are NOT VERIFIED.
 
 ## Code tasks
 
 - Probe with small scripts outside the repo, in a scratch directory. Use synthetic PDFs or
   files the caller provides.
 - The repo is public. Never commit client PDFs, client names or generated reports.
-  `output/` is not git-ignored, so never `git add` it.
+  `output/` and `*.pdf` are git-ignored. Never force-add them.
 - **When implementing:**
   - Write a failing test first, then make the smallest change that passes it.
   - Put new capabilities in new modules.

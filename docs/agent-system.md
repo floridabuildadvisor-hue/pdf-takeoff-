@@ -13,8 +13,10 @@ them, checks their results against the quality gates, and gives the owner one cl
 before anything is changed or published.
 
 **Status.** The agents are a way of working. They add no code capability.
-- What the code can do is in SKILL.md section 8. Today it inventories PDF pages and has math
-  helpers. Reading quantities out of a PDF is PLANNED in code.
+- What the code can do is in SKILL.md: the status notes at the top, then section 8. Today it
+  inventories PDF pages, keeps dimension strings as printed, rejoins stacked fractions, has
+  math and framing helpers, exports a BOQ CSV and flags a dimension register. Reading
+  quantities out of a PDF is PLANNED in code.
 - So a quantity that an agent reads from a drawing is `native_text`, `ocr_text` or
   `image_interpretation`. It is unverified until the estimator checks it.
 - The agent files are checked by `tests/test_agent_definitions.py`. Those tests read the
