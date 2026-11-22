@@ -75,7 +75,8 @@ specialist returns its own planning block before its result.
   - run `python3 -B evidence_package.py <project folder>` from the repo root. Any finding
     is a failed gate;
   - run `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS` in the project folder, once for
-    each agent folder. Every line must say `OK`;
+    each agent's folder. Every line must say `OK`. `02_Working/review/` is not an agent's
+    folder and has no `SHA256SUMS`;
   - run the recompute command from its `commands.txt` and pipe the output to `diff` against
     the recorded output. Any difference is a failed gate;
   - follow two `based_on` chains from the newest records back to a `DOC-` row, and open the
