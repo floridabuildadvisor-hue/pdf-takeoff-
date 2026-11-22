@@ -41,7 +41,15 @@ read and the project files you will write, and acceptance criteria.
 5. **Openings.** Deduct doors, windows and voids where the method says so. List every
    deduction in the record.
 6. **Write the measurement record** from section 9 for every quantity. The formula must
-   recompute to the quantity.
+   recompute to the quantity. Your `records.csv` has the ten record columns and the takeoff
+   columns the repo code reads: `record_type`, `item`, `description`, `dimension`,
+   `formula`, `quantity`, `unit` and `assumptions`.
+   - `record_type` is `input` for a printed value, `calc` for a step and `quantity` for a
+     net quantity that goes to the BOQ.
+   - `dimension` names what the row reads, such as `CF-1 width`. Use the same name when you
+     read the same thing from a second place, so two different values are flagged.
+   - A `quantity` row you cannot settle, such as an unresolved conflict, keeps `quantity`
+     empty and gives the reason in `status`. Never fill it with one of the alternatives.
 7. **Low confidence.** Recount each `low` item by a second, independent path, such as the
    schedule and then the plan. Record both results. If they differ, report the difference.
 8. **Use the repo helpers for arithmetic only:** `distance_feet`, `polyline_length_feet`,
@@ -64,8 +72,12 @@ measurements, units, duplicates, missing scope, openings and assemblies. Record 
     every dimension in its formula;
   - `commands.txt`, with the one command that recomputes every quantity from the records
     and prints them;
-  - `SHA256SUMS` and `CHECK.md`, and the output of `shasum -a 256 -c SHA256SUMS`, run in
-    the project folder. Put that output in your reply, never in a file.
+  - `SHA256SUMS` and `CHECK.md`, and the output of
+    `shasum -a 256 -c 02_Working/quantity-takeoff-agent/SHA256SUMS`, run in the project
+    folder. Put that output in your reply, never in a file;
+  - the output of `python3 -B evidence_package.py <project folder>`, run from the repo
+    root after `SHA256SUMS` is written. Fix every finding in your own folder before you
+    return. Report a finding in another agent's folder; never fix it.
 - The measurement records, and the totals by item.
 - The Level 1 result.
 - The low-confidence list, with both counts for each item.

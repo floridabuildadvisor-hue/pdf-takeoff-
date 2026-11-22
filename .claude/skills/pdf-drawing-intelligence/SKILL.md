@@ -67,6 +67,20 @@ and tested with synthetic data, neither connected to PDF extraction yet:
   or units. It never picks a value; the estimator resolves each flag against the drawings.
 - 63 tests in total.
 
+**Evidence modules (2026-11-22).** Two more modules, both IMPLEMENTED and tested with
+synthetic files only. Neither has been run on a real plan set:
+
+- `evidence_package.py`: `check_project(project_dir)` and the command
+  `python3 -B evidence_package.py <project folder>` check the agents' evidence packages
+  (`docs/agent-system.md` section 9): the sha256 of each listed file, the record columns,
+  the IDs, every `based_on` link, and each printed string read back at its `bbox`. It only
+  reads. It does not recompute formulas or check that a quantity is right.
+- `takeoff_records.py`: `boq_items_from_records(records)` and
+  `register_entries_from_records(records)` carry takeoff rows to `export_boq` and
+  `validate_register`. A quantity row with no number is returned as not exported. The
+  command is `python3 -B takeoff_records.py <records.csv> <boq.csv>`.
+- 186 tests in total.
+
 **Framing module merged (2026-11-17).** PR #1 is merged, so `framing_takeoff.py` is on
 `main`. This supersedes the PR #1 paragraph in section 16.
 
@@ -181,7 +195,7 @@ TAKEOFF_METHOD.md          # the owner's takeoff method (see section 2)
 README.md                  # short overview + planned workflow; no CLI usage any more
 tests/test_pdf_intelligence.py   # 7 tests (pypdfium2 mocked)
 tests/test_vector_takeoff.py     # 7 tests
-tests/test_agent_definitions.py  # 38 checks on the subagent files (no agent is run)
+tests/test_agent_definitions.py  # 46 checks on the subagent files (no agent is run)
 .github/workflows/validate.yml   # unittest on Python 3.11, path-filtered
 .github/copilot-instructions.md  # instructions for GitHub Copilot (out of date, see section 14)
 requirements.txt           # numpy, opencv-python-headless, pypdfium2 (unpinned)
@@ -318,8 +332,8 @@ the owner asks.
 - **Command (from the repo root):** `python3 -m unittest discover -s tests -v`
 - **Baseline:** 14 code tests pass at `35e9194`. That is 7 in `test_pdf_intelligence.py` and 7 in
   `test_vector_takeoff.py`, run on Python 3.9.6 locally on 2026-11-10. CI runs Python 3.11.
-- **Subagent checks:** `test_agent_definitions.py` adds 38 tests. On `main` at `274b20b`,
-  the full suite runs 146 (2026-11-17).
+- **Subagent checks:** `test_agent_definitions.py` adds 46 tests. The full suite runs 186
+  (2026-11-22).
   They read the files in `.claude/agents/` and `docs/agent-system.md`. They do not run any
   agent, so agent behavior on a plan set is still NOT VERIFIED.
 - **Coverage today:** classification (3 tests), sheet number (1), dimension tokens (1), HTML

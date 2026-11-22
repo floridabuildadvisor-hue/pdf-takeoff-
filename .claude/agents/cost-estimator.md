@@ -55,7 +55,7 @@ every price has a source and date, no quantity is priced twice, and the totals a
     price sheet it came from. For a text file, `page` is empty and `bbox` is `line <n>`;
   - `commands.txt`, with the one command that recomputes every extension and total from
     the rows and prints them;
-  - `SHA256SUMS` and `CHECK.md`, and the output of `shasum -a 256 -c SHA256SUMS`, run in
+  - `SHA256SUMS` and `CHECK.md`, and the output of `shasum -a 256 -c 02_Working/cost-estimator/SHA256SUMS`, run in
     the project folder. Put that output in your reply, never in a file.
 - The priced lines by cost type, and the totals.
 - The source and date for each price.

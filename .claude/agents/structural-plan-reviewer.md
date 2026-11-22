@@ -61,7 +61,7 @@ exists on its schedule, and every element type is classified as the drawings nam
     each sheet it uses, and the `as_printed` string and `bbox` of every dimension, mark and
     schedule entry it cites;
   - `commands.txt`, `SHA256SUMS` and `CHECK.md`;
-  - the output of `shasum -a 256 -c SHA256SUMS`, run in the project folder. Put it in
+  - the output of `shasum -a 256 -c 02_Working/structural-plan-reviewer/SHA256SUMS`, run in the project folder. Put it in
     your reply, never in a file.
 - The scope register by element type.
 - The schedules used, and the cross-check table with `matches`, `differs` or

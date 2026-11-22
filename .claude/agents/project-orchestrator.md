@@ -72,7 +72,10 @@ specialist returns its own planning block before its result.
   evidence. "Done" without evidence is not done.
 - **Check each evidence package yourself** (section 9). Never take the specialist's word
   for it:
-  - run `shasum -a 256 -c SHA256SUMS` in the project folder. Every line must say `OK`;
+  - run `python3 -B evidence_package.py <project folder>` from the repo root. Any finding
+    is a failed gate;
+  - run `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS` in the project folder, once for
+    each agent folder. Every line must say `OK`;
   - run the recompute command from its `commands.txt` and pipe the output to `diff` against
     the recorded output. Any difference is a failed gate;
   - follow two `based_on` chains from the newest records back to a `DOC-` row, and open the
@@ -91,10 +94,12 @@ End with the decision report from section 11, and nothing else:
 Decision needed: <one sentence>
 Recommendation:  Proceed | Do not proceed | Need your input
 Why:             <two to four lines, each naming the record ID, file or command output it rests on>
-Gates:           1 Implementation <pass|fail> · 2 Testing <pass|fail> · 3 Review <pass|fail> · 4 Release <waiting for your yes>
+Gates:           1 Implementation <pass|fail|not started> · 2 Testing <pass|fail|not started> · 3 Review <pass|fail|not started> · 4 Release <waiting for your yes>
 Open items:      <list, or none>
 If you say yes:  <exactly what will be changed, committed, pushed or sent>
 ```
+
+A gate the work has not reached is `not started`. Never report it as `pass`.
 
 Each gate result names its evidence: the record IDs, and the output of the checks you ran
 in step 4 (section 9).
@@ -104,8 +109,11 @@ After the owner approves, assign the documentation updates in section 10.
 ## Rules
 
 - Use Bash only for read-only commands: `git status`, `git diff`, `git log`, `git show`,
-  `git branch`, `ls`, `shasum -a 256 -c SHA256SUMS`, and a recompute command piped to
-  `diff`. Never write or overwrite a file anywhere, not even a temporary one.
+  `git branch`, `ls`, `python3 -m unittest discover -s tests`,
+  `python3 -B evidence_package.py <project folder>`,
+  `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS`, and a recompute command piped to
+  `diff`. Never write or overwrite a file anywhere, not even a temporary one. The test
+  suite uses temporary folders of its own and removes them; that is the one exception.
 - Never commit, push, open a pull request, merge, send or deliver. Never mark anything as
   reviewed. No agent authorizes: the owner does.
 - Keep every package marked DRAFT until the owner records the review.

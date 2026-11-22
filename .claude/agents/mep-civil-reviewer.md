@@ -62,7 +62,7 @@ exists on its schedule or legend, and no line depends on a diagram for a length.
     each sheet it uses, and the `as_printed` string and `bbox` of every symbol, size and
     schedule entry it cites. A symbol on a page with no text layer gets a crop image;
   - `commands.txt`, `SHA256SUMS` and `CHECK.md`;
-  - the output of `shasum -a 256 -c SHA256SUMS`, run in the project folder. Put it in
+  - the output of `shasum -a 256 -c 02_Working/mep-civil-reviewer/SHA256SUMS`, run in the project folder. Put it in
     your reply, never in a file.
 - The scope register by system.
 - The list of drawings that are diagrams and not to scale.

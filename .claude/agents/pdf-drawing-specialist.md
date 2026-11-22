@@ -131,7 +131,7 @@ Before you return, check your own work:
       scale note;
     - `commands.txt` with the exact `pdf_intelligence.py` command, and `SHA256SUMS`,
       which includes every received PDF;
-    - `CHECK.md`, and the output of `shasum -a 256 -c SHA256SUMS`, run in the project
+    - `CHECK.md`, and the output of `shasum -a 256 -c 02_Working/pdf-drawing-specialist/SHA256SUMS`, run in the project
       folder. Put that output in your reply, never in a file;
   - the file inventory and the sheet index;
   - the scale and units per sheet and viewport;

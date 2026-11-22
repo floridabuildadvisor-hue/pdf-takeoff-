@@ -31,6 +31,8 @@ before anything is changed or published.
   `docs/pdf-drawing-intelligence.md` section 3.
 - The special cases, the rule on where files go, and the second Level 2 pass were added
   after that trial. No agent has run with them yet: NOT VERIFIED.
+- `evidence_package.py` checks a package and `takeoff_records.py` carries takeoff rows to
+  the BOQ export (section 9). Both are tested on synthetic files only.
 - The agents have not been run on a real plan set: NOT VERIFIED.
 
 **The owner's own takeoff pipeline.** Client projects may run through the owner's private
@@ -125,7 +127,7 @@ A gate that fails stops the work. The orchestrator reports which gate failed and
 | Gate | Takeoff or estimate | Code change |
 |---|---|---|
 | **1. Implementation** | The plan has all five fields and the owner accepted it. Work stays inside its scope. Scale is verified per sheet and viewport before anything is measured. Every quantity has a measurement record. | The plan has all five fields and the owner accepted it. The change is the smallest that works. Modules stay separate. No new dependency without a stated reason. |
-| **2. Testing** | The orchestrator checks each evidence package itself: `shasum -a 256 -c SHA256SUMS` prints `OK` for every file, and the recompute command in `commands.txt` gives the recorded numbers. Every formula recomputes to its quantity. Each low-confidence item is recounted by a second, independent path. Totals are checked against written dimensions where they exist. | A failing test came first. The full suite was run and the real counts are reported. No test was deleted, skipped or weakened. |
+| **2. Testing** | The orchestrator checks each evidence package itself: `python3 -B evidence_package.py <project folder>` reports no findings, `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS` prints `OK` for every file, and the recompute command in `commands.txt` gives the recorded numbers. Every formula recomputes to its quantity. Each low-confidence item is recounted by a second, independent path. Totals are checked against written dimensions where they exist. | A failing test came first. The full suite was run and the real counts are reported. No test was deleted, skipped or weakened. |
 | **3. Review** | Levels 1, 2 and 3 are done (section 7). Every finding is closed, or listed as open for the owner. | `architect-reviewer` and `takeoff-domain-reviewer` have reported. Every finding is closed, or listed as open for the owner. |
 | **4. Release** | The orchestrator gave the decision report (section 11) and the owner said yes in chat. Until then the package stays DRAFT, and nothing is sent, delivered or marked as reviewed. | The owner saw the diff and said yes in chat. Until then there is no commit, push, pull request or merge. |
 
@@ -204,13 +206,14 @@ a mismatch is reported.
 
 **Evidence package.** A result counts only when someone who never saw the agent's work can
 check each number from the files alone. A summary in the return is never the only copy of a
-result. Every agent that writes files leaves these in its folder in `02_Working/`:
+result. Every agent that writes files leaves these in its own folder, `02_Working/<agent>/`,
+where `<agent>` is the agent's name, such as `02_Working/quantity-takeoff-agent/`:
 
 | File | What it holds |
 |---|---|
-| The records: `records.csv`, or the stage's register | One row per item, with the fields below. |
+| The records: `records.csv`, or `register.csv` for a sheet index or scope register | One row per item, with the fields below. |
 | `commands.txt` | Every command run, exactly as typed, with its folder, its exit code and the files it wrote. One of them recomputes every calculated value from the records. |
-| `SHA256SUMS` | The sha256 of every file the agent read or wrote, except itself, with paths relative to the project folder. Run there, `shasum -a 256 -c SHA256SUMS` prints `OK` for each file. That output goes in the return, never in a file: a file written after `SHA256SUMS` cannot be listed in it. |
+| `SHA256SUMS` | The sha256 of every file the agent read or wrote, except itself, with paths relative to the project folder. Run in the project folder, `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS` prints `OK` for each file. That output goes in the return, never in a file: a file written after `SHA256SUMS` cannot be listed in it. |
 | `CHECK.md` | Three to five spot checks a person can do in a few minutes. Each gives the record ID, where to look, and the value to expect. |
 
 Every record row has:
@@ -227,7 +230,31 @@ Every record row has:
   reports text. On a page with no text layer, give the path of a crop image instead. If
   neither exists, write `none` and the reason.
 - `method`: the extraction method listed above.
-- `status`: `checked against source`, or `not checked` with the reason.
+- `status`: `checked against source`, or `not checked: <reason>`.
+
+**Takeoff rows.** A `QTO-` records file also has these columns, because the repo code reads
+them:
+- `record_type`: `input` for a printed value used in a formula, `calc` for a step, and
+  `quantity` for a net quantity that goes to the BOQ. Other types, such as a comparison,
+  are allowed. Only `quantity` rows become BOQ lines.
+- `item` and `description`: what the row measures.
+- `dimension`: the name of the dimension or count the row reads, such as `CF-1 width`. Use
+  the same name every time the same thing is read from another place, so two different
+  values are flagged. Leave it empty on rows that read nothing.
+- `formula`, `quantity` and `unit`. A `quantity` row with no agreed number leaves
+  `quantity` empty and says why in `status`. It never gets a value.
+- `assumptions`.
+
+`python3 -B takeoff_records.py <records.csv> <boq.csv>`, run from the repo root, writes the
+`quantity` rows as BOQ lines with `export_boq`. It prints `NOT EXPORTED` for each one with
+no number, and `FLAG` for each dimension that `validate_register` flags. The record ID is
+the BOQ item code.
+
+**The package check.** `python3 -B evidence_package.py <project folder>`, run from the repo
+root, checks every package in `02_Working/`: the hashes, the columns, the IDs, every
+`based_on` link, and every `as_printed` string read back at its `bbox`. It only reads. An
+agent that writes files runs it before it returns and puts the output in its reply. It does
+not recompute formulas and it does not check that a quantity is right.
 
 **Special cases.** Each has one form, so a script can check every row:
 - **Several pages.** One row cites one page. A value read from several pages gets one row
@@ -289,10 +316,12 @@ until the owner answers:
 Decision needed: <one sentence>
 Recommendation:  Proceed | Do not proceed | Need your input
 Why:             <two to four lines, each naming the record ID, file or command output it rests on>
-Gates:           1 Implementation <pass|fail> · 2 Testing <pass|fail> · 3 Review <pass|fail> · 4 Release <waiting for your yes>
+Gates:           1 Implementation <pass|fail|not started> · 2 Testing <pass|fail|not started> · 3 Review <pass|fail|not started> · 4 Release <waiting for your yes>
 Open items:      <list, or none>
 If you say yes:  <exactly what will be changed, committed, pushed or sent>
 ```
+
+A gate the work has not reached is `not started`. It is never reported as `pass`.
 
 ## 12. Rules that never bend
 

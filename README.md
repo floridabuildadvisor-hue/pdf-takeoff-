@@ -133,6 +133,21 @@ line with an empty formula or source sheet, naming the item codes.
 names that appear with different values, for the estimator to resolve against the drawings.
 Neither module checks that a quantity is right.
 
+### Evidence check and takeoff records (`evidence_package.py`, `takeoff_records.py`)
+
+```bash
+python3 -B evidence_package.py path/to/project_folder
+python3 -B takeoff_records.py path/to/records.csv path/to/boq.csv
+```
+
+The first checks the evidence packages in a project's `02_Working` folder, as described in
+[docs/agent-system.md](docs/agent-system.md) section 9: file hashes, record columns, IDs,
+links between records, and each printed string read back from its place on the sheet. It
+only reads, and its exit code is 1 when it has a finding. The second writes the takeoff
+`quantity` rows as BOQ lines and prints the rows it left out and the dimensions flagged for
+review. Neither recomputes a formula or checks that a quantity is right; every line still
+needs the estimator's review. Both are tested on synthetic files only.
+
 ## Tests
 
 ```bash

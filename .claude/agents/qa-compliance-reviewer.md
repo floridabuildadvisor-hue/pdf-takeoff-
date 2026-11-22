@@ -35,8 +35,10 @@ will read, and acceptance criteria.
    - Units, sheet numbers and revisions are the same everywhere an item appears.
 4. **Formulas.** Recompute them. Every formula gives its quantity, and every extension gives
    its cost.
-5. **Traceability.** Pick lines from the final documents and follow each one back to its
-   sheet. A line you cannot trace is a blocking failure.
+5. **Traceability.** Run `python3 -B evidence_package.py <project folder>` from the repo
+   root. Every finding is a blocking failure. Then pick lines from the final documents and
+   follow each one back to its sheet. A line you cannot trace is a blocking failure. The
+   script does not recompute formulas, so check 4 is still yours.
 6. **Review levels.** Level 1 and Level 2 are recorded. Every finding is closed, or listed
    as open for the owner.
 7. **Wording.**
@@ -60,7 +62,8 @@ anywhere, not even a temporary one: run a script with `python3 -c` or a heredoc.
    - `expected` and `found`, and the formula or command that shows the difference;
    - for each traced line, the chain of IDs back to its sheet (`RPT-` to `EST-` to `QTO-`
      to the scope register to `DOC-`), and where the chain breaks, if it does;
-   - the output of `shasum -a 256 -c SHA256SUMS` for each package you checked.
+   - the output of `python3 -B evidence_package.py <project folder>`, and of
+     `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS` for each package you checked.
 4. Blocking failures, then warnings. For each: the `L3-` row, the document and line, the
    rule it breaks, and what is needed.
 5. `Not checked`: what you could not check, and why.
