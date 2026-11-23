@@ -22,11 +22,14 @@ def _is_empty(value: Any) -> bool:
     return value is None or not str(value).strip()
 
 
-def export_boq(items: Iterable[Mapping[str, Any]], path: str | Path) -> Path:
+def export_boq(
+    items: Iterable[Mapping[str, Any]], path: str | Path, extra_columns: Iterable[str] = (),
+) -> Path:
     """Write items to a CSV file at path and return the path.
 
     Raises ValueError naming the item codes whose formula or source_sheet is
-    empty. Nothing is written in that case.
+    empty. Nothing is written in that case. ``extra_columns`` are written after
+    the seven BOQ columns, from the same keys in each item.
     """
     rows = list(items)
     problems = []
@@ -41,7 +44,8 @@ def export_boq(items: Iterable[Mapping[str, Any]], path: str | Path) -> Path:
     destination.parent.mkdir(parents=True, exist_ok=True)
     with destination.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(BOQ_COLUMNS)
+        columns = BOQ_COLUMNS + tuple(extra_columns)
+        writer.writerow(columns)
         for row in rows:
-            writer.writerow(["" if row.get(column) is None else row.get(column) for column in BOQ_COLUMNS])
+            writer.writerow(["" if row.get(column) is None else row.get(column) for column in columns])
     return destination
