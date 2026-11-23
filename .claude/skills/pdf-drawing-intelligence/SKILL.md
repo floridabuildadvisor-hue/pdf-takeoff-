@@ -544,9 +544,10 @@ against the gates, and gives the owner one decision before anything is changed o
 | [`takeoff-domain-reviewer`](../../agents/takeoff-domain-reviewer.md) | Business boundaries and estimator wording | No |
 
 Status: the subagents are a way of working. They add no code capability. Each project agent
-passed one trial on a synthetic plan set (2026-11-17), but none has been run on a real plan
-set (NOT VERIFIED). A quantity an agent reads from a drawing is
-unverified until the estimator checks it.
+passed two trials on a synthetic plan set (2026-11-17), with the agent files of that date.
+Agents ran again on synthetic sets during the PR #11 review (2026-11-22 and 2026-11-23;
+`docs/agent-system.md` section 1). None has been run on a real plan set (NOT VERIFIED). A
+quantity an agent reads from a drawing is unverified until the estimator checks it.
 
 Every project agent must leave an evidence package (`docs/agent-system.md` section 9): one
 row per item with its own ID, the IDs it is based on, the string as printed and where it is
@@ -554,7 +555,8 @@ on the sheet, the commands it ran, and a `SHA256SUMS` file that `shasum -a 256 -
 check. A second trial on the same synthetic set (2026-11-17) ran all ten agents with these
 rules. Every result could be checked from the files alone, and the QA reviewer and the
 orchestrator each caught 3 of 3 planted defects. The special cases, the rule on where
-files go and the second Level 2 pass came out of that trial, and no agent has run with
-them yet (NOT VERIFIED).
+files go and the second Level 2 pass came out of that trial. Agents ran again during the
+PR #11 review (`docs/agent-system.md` section 1), but no run with the agent files as
+committed here is recorded (NOT VERIFIED).
 
 No subagent commits, pushes, opens PRs, sends, delivers or authorizes. The owner does.

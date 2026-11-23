@@ -30,7 +30,19 @@ before anything is changed or published.
   reviewer and the orchestrator each caught 3 of 3 planted defects. The results are in
   `docs/pdf-drawing-intelligence.md` section 3.
 - The special cases, the rule on where files go, and the second Level 2 pass were added
-  after that trial. No agent has run with them yet: NOT VERIFIED.
+  after that trial.
+- During the PR #11 review, agents ran again on synthetic sets. They ran as general agents
+  reading the versions of their files at that time, not the files as committed here, so
+  the `tools:` limits were not enforced by the app:
+  - on 2026-11-22, trial stages (intake, plan, structural register, takeoff, Level 2 and
+    Level 3) and two live runs, the quantity takeoff agent and the orchestrator;
+  - on 2026-11-23, from 04:24 to 04:52 UTC, a four-stage benchmark (inventory, plan review,
+    takeoff, BOQ draft). A separate auditor, the only one given the answer key, scored it
+    39 PASS and 6 NOT ATTEMPTED out of 45 checks.
+
+  The review report, the score file and the exact agent files used are not archived in this
+  repo, and the score has not been re-checked independently. No run with the agent files as
+  committed here is recorded: NOT VERIFIED.
 - `evidence_package.py` checks a package and `takeoff_records.py` carries takeoff rows to
   the BOQ export (section 9). Both are tested on synthetic files only.
 - The agents have not been run on a real plan set: NOT VERIFIED.
