@@ -17,7 +17,8 @@ from dimension_register import validate_register
 
 def row(record_id, record_type, **fields):
     base = dict.fromkeys(takeoff_records.TAKEOFF_COLUMNS, "")
-    base.update(id=record_id, record_type=record_type, sheet="S-3", item="slab on grade")
+    base.update(id=record_id, record_type=record_type, sheet="S-3", revision="",
+                item="slab on grade")
     base.update(fields)
     return base
 
@@ -28,7 +29,7 @@ RECORDS = [
     row("QTO-002", "input", dimension="slab width", quantity="24", unit="FT",
         formula="24 + 0/12"),
     row("QTO-003", "quantity", description="Slab area, net as drawn",
-        formula="[QTO-001]*[QTO-002]", quantity="960", unit="SF",
+        formula="[QTO-001]*[QTO-002]", quantity="960", unit="SF", revision="REV 2",
         assumptions="No opening is drawn."),
     row("QTO-004", "calc", formula="[QTO-003]*4/12", quantity="320", unit="CF"),
     row("QTO-005", "quantity", description="F-1 count", item="pad footing F-1",
@@ -310,13 +311,47 @@ class RecordsFileTests(unittest.TestCase):
             rows = list(csv.DictReader(handle))
         self.assertEqual([r["boq_status"][:22] for r in rows], ["PARTIAL DRAFT: 1 of 2 "])
 
-    def test_a_line_with_no_revision_is_flagged_and_left_empty(self):
-        row = "QTO-001,quantity,slab,S-3,,960,SF,40*24\n"
-        code, folder, output = self.run_cli((self.HEADER + row).encode())
+    def test_a_number_with_no_revision_writes_no_boq(self):
+        for revision in ("", " ", "\u200b", "\ufeff\u00a0"):
+            with self.subTest(revision=ascii(revision)):
+                row = f"QTO-001,quantity,slab,S-3,{revision},960,SF,40*24\n"
+                code, folder, output = self.run_cli((self.HEADER + self.ROW.replace("001", "002")
+                                                     + row).encode(), earlier_boq="old\n")
+                self.assertEqual(code, 1)
+                self.assertTrue(output.startswith("NOT WRITTEN"), output)
+                self.assertIn("REJECTED QTO-001: no revision", output)
+                self.assertFalse((folder / "boq.csv").exists())
+                self.assertEqual((folder / "boq.csv.SUPERSEDED").read_text(), "old\n")
+
+    def test_a_held_quantity_needs_no_revision(self):
+        held = "QTO-002,quantity,wall,A-1,,,SF,none\n"
+        code, folder, output = self.run_cli((self.HEADER + self.ROW + held).encode())
         self.assertEqual(code, 1)
-        self.assertIn("FLAG no_revision QTO-001", output)
+        self.assertTrue(output.startswith("PARTIAL DRAFT"), output)
         with (folder / "boq.csv").open(newline="", encoding="utf-8") as handle:
-            self.assertEqual([r["source_revision"] for r in csv.DictReader(handle)], [""])
+            self.assertEqual([r["source_revision"] for r in csv.DictReader(handle)], ["REV 2"])
+
+    def test_an_earlier_superseded_copy_is_never_written_over(self):
+        bad = (self.HEADER + self.ROW.replace("960", "nan")).encode()
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder)
+        (folder / "records.csv").write_bytes(bad)
+        (folder / "boq.csv.SUPERSEDED.3").mkdir()
+        kept = {}
+        for text, name in (("first\n", "boq.csv.SUPERSEDED"), ("second\n", "boq.csv.SUPERSEDED.2"),
+                           ("third\n", "boq.csv.SUPERSEDED.4")):
+            (folder / "boq.csv").write_text(text, encoding="utf-8")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(takeoff_records.main([str(folder / "records.csv"),
+                                                       str(folder / "boq.csv")]), 1)
+            kept[name] = text
+            self.assertFalse((folder / "boq.csv").exists())
+            self.assertIn(f"renamed {name}.", output.getvalue())
+            self.assertIn(f"renamed {name}.", (folder / "boq.csv.STATUS.txt").read_text())
+            for kept_name, kept_text in kept.items():
+                self.assertEqual((folder / kept_name).read_text(), kept_text)
+        self.assertTrue((folder / "boq.csv.SUPERSEDED.3").is_dir())
 
     def test_a_byte_order_mark_does_not_hide_the_id_column(self):
         code, folder, output = self.run_cli(b"\xef\xbb\xbf" + (self.HEADER + self.ROW).encode())
