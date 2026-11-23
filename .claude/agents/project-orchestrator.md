@@ -74,6 +74,12 @@ specialist returns its own planning block before its result.
   for it:
   - run `python3 -B evidence_package.py <project folder>` from the repo root. Any finding
     is a failed gate;
+  - **seals.** If the owner or the brief gave you `SEAL` lines from an earlier decision
+    report, run the check with them instead:
+    `python3 -B evidence_package.py <project folder> --seals - <<'EOF'`, the lines, `EOF`.
+    A `seal_mismatch` on a received file, or on a stage the owner did not reopen, is a
+    failed gate: report it and stop. If you were given none and packages already exist,
+    say so in `Why`. Copy every `SEAL` line of your last run into the decision report;
   - run `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS` in the project folder, once for
     each agent's folder. Every line must say `OK`. `02_Working/review/` is not an agent's
     folder and has no `SHA256SUMS`;
@@ -97,6 +103,7 @@ Recommendation:  Proceed | Do not proceed | Need your input
 Why:             <two to four lines, each naming the record ID, file or command output it rests on>
 Gates:           1 Implementation <pass|fail|not started> · 2 Testing <pass|fail|not started> · 3 Review <pass|fail|not started> · 4 Release <waiting for your yes>
 Open items:      <list, or none>
+Seals:           <every SEAL line from the last package check, or "no project folder">
 If you say yes:  <exactly what will be changed, committed, pushed or sent>
 ```
 
@@ -111,7 +118,8 @@ After the owner approves, assign the documentation updates in section 10.
 
 - Use Bash only for read-only commands: `git status`, `git diff`, `git log`, `git show`,
   `git branch`, `ls`, `python3 -m unittest discover -s tests`,
-  `python3 -B evidence_package.py <project folder>`,
+  `python3 -B evidence_package.py <project folder>` (also with `--seals -` and a heredoc
+  of `SEAL` lines, which writes no file),
   `shasum -a 256 -c 02_Working/<agent>/SHA256SUMS`, and a recompute command piped to
   `diff`. Never write or overwrite a file anywhere, not even a temporary one. The test
   suite uses temporary folders of its own and removes them; that is the one exception.

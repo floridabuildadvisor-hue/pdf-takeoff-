@@ -198,7 +198,10 @@ Each item gets `pass`, `fail` or `not checked`, with the sheet and the evidence.
 (the owner's pipeline writes `SEM FONTE`) and raised as a question. It never gets a value.
 
 **Units.** US customary only: LF, SF, SY, CF, CY, EA, LS, LB, TON, GAL, SQ, BF, MBF. Where
-the owner's pipeline lists its allowed units, that list wins.
+the owner's pipeline lists its allowed units, that list wins. The repo code holds this list
+as `takeoff_records.ALLOWED_UNITS` and refuses a `quantity` row with a number and any other
+unit, or the same unit written another way (`sf`, `SQFT`). Rows of other types, such as an
+`input` in feet, are not held to the list.
 
 **Net first.** Quantities are net, as drawn. A waste factor or a price is a separate,
 labeled value with its own source. No correction factor is ever used to make a total close:
@@ -234,9 +237,16 @@ Every record row has:
 
 **Takeoff rows.** A `QTO-` records file also has these columns, because the repo code reads
 them:
-- `record_type`: `input` for a printed value used in a formula, `calc` for a step, and
-  `quantity` for a net quantity that goes to the BOQ. Other types, such as a comparison,
-  are allowed. Only `quantity` rows become BOQ lines.
+- `record_type`: one of `input` (a printed value used in a formula), `calc` (a step),
+  `deduction`, `scale` (a scale check), `comparison`, `alternative` (a value shown beside
+  another and not chosen) and `quantity` (a net quantity that goes to the BOQ). The list is
+  closed: the code refuses any other text, so a row cannot be kept out of every check by a
+  type that reads like `quantity` and is not. Only `quantity` rows become BOQ lines.
+  Packages written before this list was closed (2026-11-23) are legacy: they may use
+  `compare` (now `comparison`), `held` (now a `quantity` row with an empty `quantity`) and
+  `total` (now `calc`, or `quantity` when it goes to the BOQ). They are kept as they were
+  written and are not edited to fit. The check reports those rows as `bad_record_type`, and
+  on a legacy package that finding is expected.
 - `item` and `description`: what the row measures.
 - `dimension`: the name of the dimension or count the row reads, such as `CF-1 width`. Use
   the same name every time the same thing is read from another place, so two different
@@ -250,11 +260,122 @@ them:
 no number, and `FLAG` for each dimension that `validate_register` flags. The record ID is
 the BOQ item code.
 
+A `quantity` row is exported only with a plain number (digits, with an optional decimal
+part), a unit from the list above, a formula, a sheet and a `QTO-<number>` ID used once.
+`0` is a number. `nan`, `inf`, `1e3`, `1,000`, a sign and words are not. An empty
+`quantity` holds the row open. Any other defect prints `REJECTED <id>` and no BOQ is
+written: one defective row stops the whole export. So does a `record_type` outside the
+list, a cell made only of characters that print nothing, and a formula, sheet, revision or
+item that starts with `=`, `+`, `-` or `@`, which a spreadsheet would run. So does a
+records file that is not UTF-8, has an unclosed quote, names a column twice, has a row of
+the wrong length or lacks a needed column. When no BOQ is written, a `<boq.csv>` from an
+earlier run is renamed `<boq.csv>.SUPERSEDED`. The command refuses to start (exit code 2)
+when the BOQ, status or superseded path is a link or a folder, or is the records file.
+
+Every BOQ line carries two columns after the seven of `TAKEOFF_METHOD.md`:
+- `source_revision`: the `revision` of the quantity record. An empty one prints
+  `FLAG no_revision <id>`; the package check reports it.
+- `boq_status`: `DRAFT: all <n> quantity rows, not reviewed`, or
+  `PARTIAL DRAFT: <n> of <m> quantity rows, not reviewed`. It is on every line, so a line
+  copied out of the file still says it is from a partial draft.
+
+The command also writes `<boq.csv>.STATUS.txt`. Its first word is `DRAFT`, `PARTIAL DRAFT`
+or `NOT WRITTEN`. No BOQ from this command is a reviewed one.
+
 **The package check.** `python3 -B evidence_package.py <project folder>`, run from the repo
 root, checks every package in `02_Working/`: the hashes, the columns, the IDs, every
 `based_on` link, and every `as_printed` string read back at its `bbox`. It only reads. An
 agent that writes files runs it before it returns and puts the output in its reply. It does
 not recompute formulas and it does not check that a quantity is right.
+
+It also checks, as file integrity:
+- every file in `01_Received/` is listed in the `pdf-drawing-specialist` `SHA256SUMS`, so a
+  drawing left out, or added after the inventory, is reported;
+- every path in a `SHA256SUMS`, a `file` column or a crop `bbox`, and the BOQ file, stays
+  inside the project folder, links followed. A path that leaves it is reported and not
+  read. A path is written one way only: names joined by `/`, spelled as the folder lists
+  them, with no `..`, `.`, backslash or `~`;
+- `page` is a page number in plain digits, an ID number is plain digits, and two IDs that
+  are the same number written two ways (`QTO-7`, `QTO-007`) are reported;
+- a crop image is a PNG or JPEG file, and a `drawn` row cites a page that opens;
+- every record's `file` is in its own package's `SHA256SUMS`.
+
+And, as the chain from drawing to BOQ:
+
+| Link | Rule |
+|---|---|
+| `based_on` leads to a record | Always. |
+| No circle of `based_on` links | Always. |
+| A record is based on its own stage or an earlier one (`DOC-`, then `ARC-` `STR-` `MEP-`, then `QTO-`, `EST-`, `RPT-`) | Always. |
+| A `QTO-` `input` row is not based on a `calc` or `quantity` row | Always. |
+| A `quantity` row with a number has a unit, a formula and a sheet | Always. |
+| Behind a `quantity` row with a number, some record gives a place on a drawing: `x0,y0,x1,y1` or a crop image | Always. A `line <n>` in a text file does not count. |
+| Behind it, some record is a scope-register row | Only when the project has a scope register. |
+| A `quantity` row with no number | Not checked for evidence. It is held open. |
+| A `quantity` row with a number has a `revision` and a unit from the list | Always. |
+| Two records never give different revisions for the same page of the same file. The `pdf-drawing-specialist` rows are the reference | Always, for rows that give a page and a revision. |
+| Each line of `02_Working/report-proposal-specialist/boq.csv` has the ID, quantity, unit, formula, sheet and revision of one `quantity` record whose ID no other record uses, and each `quantity` record with a number has a line | Only when that file exists. |
+| `boq_status` on every line is the exact text for the real counts: `PARTIAL DRAFT: <n> of <m> quantity rows, not reviewed` while any `quantity` row is held open, and `DRAFT: all <m> quantity rows, not reviewed` otherwise | Only when that file exists. An empty BOQ file is checked too. |
+
+The revision rule compares records with each other. Whether a sheet is the current
+revision of the set is still a question for the plan reviewer and the owner.
+
+Linked IDs show that a path exists. They do not show that the right thing was measured.
+A crop image is checked for existence only: the output counts each one as not compared.
+
+**What a hash shows, and what it does not.** A hash shows that a file still matches a
+recorded digest. It does not show that the file was the right one when the digest was
+taken, or that the digest itself was not rewritten. Every file an agent can write is inside
+the project, so nothing inside the project can be the last word. The last word is a copy
+the agents cannot reach: the owner's.
+
+The check also cannot show that the received files are the whole drawing set. A sheet or a
+file that was never sent leaves no trace in a hash. Whether the set is complete is a
+question for the sheet index, the plan reviewer and the owner.
+
+**A file with a second name.** A path inside the project does not show that the file is
+only in the project. A file can have a second name elsewhere on the same disk (a hard
+link), and a change made through that name changes the project's file without touching the
+project folder. The check follows no link out of the project, but it does not detect a
+second name. It reports the change as `hash_mismatch` or `seal_mismatch` only the next time
+it runs, and nothing covers the time between a check and the use of the file. So:
+- received files are copied into `01_Received/`, never linked;
+- the project is kept on a disk only the owner's own tools write to;
+- the check is run with the saved seals immediately before any release.
+
+The BOQ command does refuse to write over a file that has a second name, and it refuses a
+BOQ path that is the records file under another spelling.
+
+**Seals.** The check prints `SEAL <sha256>  <path>` for every file in `01_Received/` and for
+every package's `SHA256SUMS`. The procedure:
+
+1. **At intake.** `pdf-drawing-specialist` runs the check and quotes the `SEAL` lines in its
+   reply. The orchestrator puts them in the `Seals` line of its decision report. The owner
+   must compare the received-file seals with the files she sent (`shasum -a 256 <file>` on
+   her own copy) and keep the report. This is the only step that ties the project to the
+   real drawings, and only the owner can do it. Until it is done, no seal says anything
+   about the real drawings.
+2. **After each stage.** Every agent that writes files quotes the `SEAL` lines of its last
+   run. The orchestrator runs the check itself and reports the full list again.
+3. **At the start of the next stage, and before any release.** The owner, or the brief,
+   gives the orchestrator the `SEAL` lines of the last decision report. The orchestrator
+   runs `python3 -B evidence_package.py <project folder> --seals -` with those lines on
+   standard input, which writes no file.
+   - `seal_mismatch` on a received file: the drawings changed. Stop.
+   - `seal_mismatch` on a package whose stage was not reopened: stop and report it.
+   - `seal_missing` for a new package: expected for the stage just run. It gets its seal
+     in this report.
+   - `seal_conflict`: the lines given have two different seals for one path. Stop, and use
+     only the lines of the owner's kept report. The check never picks one for her.
+4. **A reopened stage** gets a new seal only in a decision report that says which stage was
+   reopened and why.
+
+Seals are not kept in a file in the project as the only copy: an agent could rewrite it.
+
+**Reproducing a calculation.** Each package keeps the script of its recompute command and
+that command's full output, as `recompute_output.txt`, both listed in `SHA256SUMS`. With
+the received files, the records and that script, anyone can rerun the calculation and
+compare. The package check does not yet rerun it or compare the output.
 
 **Special cases.** Each has one form, so a script can check every row:
 - **Several pages.** One row cites one page. A value read from several pages gets one row
@@ -318,6 +439,7 @@ Recommendation:  Proceed | Do not proceed | Need your input
 Why:             <two to four lines, each naming the record ID, file or command output it rests on>
 Gates:           1 Implementation <pass|fail|not started> · 2 Testing <pass|fail|not started> · 3 Review <pass|fail|not started> · 4 Release <waiting for your yes>
 Open items:      <list, or none>
+Seals:           <every SEAL line from the last package check, or "no project folder">
 If you say yes:  <exactly what will be changed, committed, pushed or sent>
 ```
 

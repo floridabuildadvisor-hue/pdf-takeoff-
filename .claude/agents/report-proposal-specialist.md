@@ -34,6 +34,14 @@ you will read and write, and acceptance criteria.
      open question. Never give it a value.
    - Each `FLAG` line it prints is a dimension read with two values, or with no sheet. List
      it as an open question.
+   - A `REJECTED` line means a quantity row is defective and no BOQ was written. Report it
+     to the orchestrator. Never correct a takeoff record yourself. A `boq.csv` from an
+     earlier run is renamed `boq.csv.SUPERSEDED`; never rename it back.
+   - Every line has `source_revision` and `boq_status`. Never edit or remove either.
+     `boq_status` starts `PARTIAL DRAFT` on every line while a quantity is held open.
+   - It also writes `boq.csv.STATUS.txt`. Keep it beside the BOQ and quote its first line
+     in your return. A BOQ whose status starts `PARTIAL DRAFT` is never described as
+     complete.
    - Leave `reviewer_initials` empty. The estimator fills it in.
 2. **Estimate,** only if pricing was requested. Each line shows its cost type, the source
    and its date. Waste and other added values stay on their own labeled lines.
@@ -82,6 +90,10 @@ Before you return, check your own work:
 - **DRAFT until the owner records the review.** Never send, deliver, invoice or copy
   anything to a delivered folder. Never set a reviewer name.
 - Scope is only what was requested.
+- **Seals and recompute.** Save the script of your recompute command and its full output,
+  as `recompute_output.txt`, in your folder before you write `SHA256SUMS`. Run
+  `python3 -B evidence_package.py <project folder>` last, and quote every `SEAL` line it
+  prints in your reply. The orchestrator hands them to the owner, who keeps them.
 - Write only in your own folder in `02_Working/`, and keep test copies and other scratch
   work in its `scratch/` folder. Never write client data in this repo.
 - Never commit or push.

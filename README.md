@@ -148,6 +148,24 @@ only reads, and its exit code is 1 when it has a finding. The second writes the 
 review. Neither recomputes a formula or checks that a quantity is right; every line still
 needs the estimator's review. Both are tested on synthetic files only.
 
+The check also reports a received file that the document inventory does not list, a path
+that leaves the project, links between records that run in a circle or point to a later
+stage, two revisions recorded for one page, a quantity with no place on a drawing behind
+it, and a BOQ line that does not match its quantity record. Paths must be plain
+project-relative paths; links out of the project are not followed. A crop image is checked
+for existence only.
+
+It prints one `SEAL` line for each received file and each package's hash list. A hash shows
+that a file matches a recorded digest, not that the digest can be relied on, so the owner
+keeps the `SEAL` lines and they are passed back with `--seals <file>` or `--seals -`.
+[docs/agent-system.md](docs/agent-system.md) section 9 has the procedure.
+
+The BOQ command writes no file while one quantity row is defective (for example `nan`, a
+unit outside the rulebook list, no formula or no sheet), and renames a BOQ left by an
+earlier run to `<boq.csv>.SUPERSEDED`. Every line it writes carries `source_revision` and
+a `boq_status` that starts `DRAFT` or `PARTIAL DRAFT`. It also writes
+`<boq.csv>.STATUS.txt`. A BOQ it writes is never a reviewed one.
+
 ## Tests
 
 ```bash

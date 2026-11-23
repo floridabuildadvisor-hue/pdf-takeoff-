@@ -76,6 +76,10 @@ read and write, and acceptance criteria.
 - **Estimator language only:** "extracted", "measured", "flagged for review", "as printed on
   sheet X". Never "meets code", "structurally adequate", "certified", "approved" or
   "engineered".
+- **Seals and recompute.** Save the script of your recompute command and its full output,
+  as `recompute_output.txt`, in your folder before you write `SHA256SUMS`. Run
+  `python3 -B evidence_package.py <project folder>` last, and quote every `SEAL` line it
+  prints in your reply. The orchestrator hands them to the owner, who keeps them.
 
 ## Known pitfalls
 

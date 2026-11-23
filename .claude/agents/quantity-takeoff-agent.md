@@ -45,9 +45,14 @@ read and the project files you will write, and acceptance criteria.
    columns the repo code reads: `record_type`, `item`, `description`, `dimension`,
    `formula`, `quantity`, `unit` and `assumptions`.
    - `record_type` is `input` for a printed value, `calc` for a step and `quantity` for a
-     net quantity that goes to the BOQ.
+     net quantity that goes to the BOQ. The only other values are `deduction`, `scale`,
+     `comparison` and `alternative`. The repo code refuses any other text.
    - `dimension` names what the row reads, such as `CF-1 width`. Use the same name when you
      read the same thing from a second place, so two different values are flagged.
+   - A `quantity` row with a number needs a plain number (digits and an optional decimal
+     part), a unit from the section 9 list written exactly (`LF`, `SF`, `CY`, `EA` and
+     the rest), a formula, the sheet, and the `revision` printed on that sheet. The repo
+     code refuses the whole BOQ for one row that lacks any of them.
    - A `quantity` row you cannot settle, such as an unresolved conflict, keeps `quantity`
      empty and gives the reason in `status`. Never fill it with one of the alternatives.
 7. **Low confidence.** Recount each `low` item by a second, independent path, such as the
@@ -93,6 +98,10 @@ measurements, units, duplicates, missing scope, openings and assemblies. Record 
 - Measure only the requested scope.
 - A quantity read from a page image is `image_interpretation`: an estimate until the
   estimator verifies it.
+- **Seals and recompute.** Save the script of your recompute command and its full output,
+  as `recompute_output.txt`, in your folder before you write `SHA256SUMS`. Run
+  `python3 -B evidence_package.py <project folder>` last, and quote every `SEAL` line it
+  prints in your reply. The orchestrator hands them to the owner, who keeps them.
 - Write only in your own folder in `02_Working/`, and keep test copies and other scratch
   work in its `scratch/` folder. Never write client data in this repo.
 - Never commit, push, send or mark anything as reviewed.

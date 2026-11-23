@@ -74,6 +74,10 @@ exists on its schedule or legend, and no line depends on a diagram for a length.
 
 ## Rules
 
+- **Seals and recompute.** Save the script of your recompute command and its full output,
+  as `recompute_output.txt`, in your folder before you write `SHA256SUMS`. Run
+  `python3 -B evidence_package.py <project folder>` last, and quote every `SEAL` line it
+  prints in your reply. The orchestrator hands them to the owner, who keeps them.
 - Write only in your own folder in `02_Working/`, and keep test copies and other scratch
   work in its `scratch/` folder. Never write client data in this repo.
 - Never assume a scale, a size, a rating or a dimension. Copy what is printed, exactly.
