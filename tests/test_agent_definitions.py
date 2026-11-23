@@ -290,6 +290,52 @@ class AgentFileTests(unittest.TestCase):
             with self.subTest(item=item):
                 self.assertIn(item, body)
 
+    def test_every_project_writer_quotes_its_seals_and_keeps_its_recompute_output(self):
+        for stem in PROJECT_FILE_WRITERS:
+            with self.subTest(agent=stem):
+                body = one_line(self.agents[stem][1])
+                self.assertIn("quote every `SEAL` line", body)
+                self.assertIn("`recompute_output.txt`", body)
+
+    def test_orchestrator_checks_against_the_owners_seals_and_reports_new_ones(self):
+        body = self.agents[ORCHESTRATOR][1]
+        step = one_line(body.split("## 4. Check the results", 1)[1].split("\n## ", 1)[0])
+        for item in ("--seals -", "`seal_mismatch`", "failed gate"):
+            with self.subTest(item=item):
+                self.assertIn(item, step)
+        self.assertIn("--seals -", one_line(body.split("## Rules", 1)[1]))
+
+    def test_the_decision_report_has_a_seals_line_in_both_places(self):
+        for name, text in (("orchestrator", self.agents[ORCHESTRATOR][1]),
+                           ("rulebook", RULEBOOK.read_text(encoding="utf-8"))):
+            with self.subTest(file=name):
+                self.assertRegex(text, r"\nOpen items: .*\nSeals: .*\nIf you say yes:")
+
+    def test_the_rulebook_says_who_creates_keeps_and_checks_seals(self):
+        text = one_line(RULEBOOK.read_text(encoding="utf-8"))
+        for item in ("**At intake.**", "**After each stage.**", "--seals -",
+                     "It does not show that the file was the right one",
+                     "`seal_mismatch` on a received file", "only the owner can do it"):
+            with self.subTest(item=item):
+                self.assertIn(item, text)
+
+    def test_the_rulebook_unit_list_is_the_one_the_code_enforces(self):
+        import takeoff_records
+        text = one_line(RULEBOOK.read_text(encoding="utf-8"))
+        self.assertIn("US customary only: " + ", ".join(takeoff_records.ALLOWED_UNITS) + ".",
+                      text)
+
+    def test_takeoff_and_report_agents_know_the_boq_refusals_and_markers(self):
+        takeoff = one_line(self.agents["quantity-takeoff-agent"][1])
+        for item in ("`revision`", "refuses the whole BOQ"):
+            with self.subTest(agent="takeoff", item=item):
+                self.assertIn(item, takeoff)
+        report = one_line(self.agents["report-proposal-specialist"][1])
+        for item in ("`source_revision`", "`boq_status`", "`PARTIAL DRAFT`",
+                     "`boq.csv.SUPERSEDED`"):
+            with self.subTest(agent="report", item=item):
+                self.assertIn(item, report)
+
     def test_final_qa_runs_the_package_check(self):
         self.assertIn(PACKAGE_CHECK, one_line(self.agents["qa-compliance-reviewer"][1]))
 

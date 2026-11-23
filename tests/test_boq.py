@@ -84,5 +84,16 @@ class ExportBoqTests(unittest.TestCase):
         self.assertFalse(self.path.exists())
 
 
+class ExtraColumnTests(unittest.TestCase):
+    def test_extra_columns_follow_the_seven_and_change_nothing_else(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = export_boq([_item(source_revision="REV 2")], Path(folder) / "boq.csv",
+                              extra_columns=("source_revision", "boq_status"))
+            with path.open(newline="", encoding="utf-8") as handle:
+                rows = list(csv.reader(handle))
+        self.assertEqual(rows[0], list(BOQ_COLUMNS) + ["source_revision", "boq_status"])
+        self.assertEqual(rows[1][-2:], ["REV 2", ""])
+
+
 if __name__ == "__main__":
     unittest.main()
