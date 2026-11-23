@@ -23,8 +23,11 @@ starts ``DRAFT`` or ``PARTIAL DRAFT`` on every line, so a line copied out of
 the file still says what it came from. The command also writes
 ``<boq.csv>.STATUS.txt``, which says whether the BOQ is whole, partial or not
 written. When no BOQ is written, a BOQ of that name from an earlier run is
-renamed ``<boq.csv>.SUPERSEDED``, so it cannot pass for this run's result. No
-BOQ it writes is a reviewed one: every ``reviewer_initials`` is empty.
+renamed ``<boq.csv>.SUPERSEDED``, so it cannot pass for this run's result. If
+that name is in use it is ``<boq.csv>.SUPERSEDED.2`` and so on: a copy set
+aside before is never written over. A quantity row with a number and no
+revision stops the export. No BOQ it writes is a reviewed one: every
+``reviewer_initials`` is empty.
 """
 
 from __future__ import annotations
@@ -246,6 +249,9 @@ def rejected_quantity_rows(records: Iterable[Mapping[str, Any]]) -> list[tuple[s
         if _text(row, "record_type") != BOQ_RECORD_TYPE:
             continue
         problems = quantity_row_problems(row)
+        # The rulebook asks for a revision on every quantity row with a number.
+        if _text(row, "quantity") and not _visible(_text(row, "revision")):
+            problems.append("no revision")
         if used[_raw_id(row)] > 1:
             problems.append("the ID is used more than once")
         elif same_number[_id_key(row)] > 1:
@@ -267,6 +273,20 @@ def register_entries_from_records(records: Iterable[Mapping[str, Any]]) -> list[
         for row in records
         if _text(row, "dimension")
     ]
+
+
+def _set_aside(boq_path: Path, superseded: Path) -> Path:
+    """Rename a BOQ of an earlier run to a name not in use, and return that name.
+
+    The first is ``<boq>.SUPERSEDED``, then ``<boq>.SUPERSEDED.2`` and so on, so
+    a copy set aside before is never written over.
+    """
+    target, number = superseded, 1
+    while os.path.lexists(target):
+        number += 1
+        target = superseded.with_name(f"{superseded.name}.{number}")
+    boq_path.rename(target)
+    return target
 
 
 def _refused_paths(records_path: Path, boq_path: Path, status_path: Path,
@@ -319,7 +339,7 @@ def _build(records_path: str, boq_path: Path) -> tuple[list[str], list[str]]:
             lines.append("The records have no row whose record_type is quantity.")
         lines += [f"REJECTED {record}: {problems}" for record, problems in rejected]
         if boq_path.is_file():
-            boq_path.replace(superseded)
+            superseded = _set_aside(boq_path, superseded)
             lines.append(f"A {boq_path.name} from an earlier run was renamed {superseded.name}. "
                          "It does not match these records.")
         lines.append("Correct the records and run the command again.")
@@ -334,9 +354,6 @@ def _build(records_path: str, boq_path: Path) -> tuple[list[str], list[str]]:
         for item in items:
             item["source_revision"] = _text(by_id[item["item_code"]], "revision")
             item["boq_status"] = boq_status
-            if not item["source_revision"]:
-                flag_lines.append(f"FLAG no_revision {item['item_code']}: the record cites no "
-                                  "revision for its sheet")
         export_boq(items, boq_path, extra_columns=EXTRA_BOQ_COLUMNS)
         if not_exported:
             lines = [
@@ -377,9 +394,8 @@ def main(argv: list[str] | None = None) -> int:
         flag_lines = []
         try:
             if boq_path.is_file():
-                boq_path.replace(superseded_path)
-                lines.append(f"A {boq_path.name} from an earlier run was renamed "
-                             f"{superseded_path.name}.")
+                kept = _set_aside(boq_path, superseded_path)
+                lines.append(f"A {boq_path.name} from an earlier run was renamed {kept.name}.")
         except OSError:
             lines.append(f"A {boq_path.name} from an earlier run may still be in the folder. "
                          "It is not this run's result.")

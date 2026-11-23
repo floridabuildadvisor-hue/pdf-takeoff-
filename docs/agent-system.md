@@ -281,12 +281,15 @@ list, a cell made only of characters that print nothing, and a formula, sheet, r
 item that starts with `=`, `+`, `-` or `@`, which a spreadsheet would run. So does a
 records file that is not UTF-8, has an unclosed quote, names a column twice, has a row of
 the wrong length or lacks a needed column. When no BOQ is written, a `<boq.csv>` from an
-earlier run is renamed `<boq.csv>.SUPERSEDED`. The command refuses to start (exit code 2)
+earlier run is renamed `<boq.csv>.SUPERSEDED`, or `<boq.csv>.SUPERSEDED.2` and so on when
+that name is in use: a copy set aside before is never written over, and the status names
+the copy. The command refuses to start (exit code 2)
 when the BOQ, status or superseded path is a link or a folder, or is the records file.
 
 Every BOQ line carries two columns after the seven of `TAKEOFF_METHOD.md`:
-- `source_revision`: the `revision` of the quantity record. An empty one prints
-  `FLAG no_revision <id>`; the package check reports it.
+- `source_revision`: the `revision` of the quantity record. A row with a number and no
+  revision, or one made only of characters that print nothing, is defective: the command
+  prints `REJECTED <id>: no revision` and writes no BOQ.
 - `boq_status`: `DRAFT: all <n> quantity rows, not reviewed`, or
   `PARTIAL DRAFT: <n> of <m> quantity rows, not reviewed`. It is on every line, so a line
   copied out of the file still says it is from a partial draft.

@@ -161,8 +161,9 @@ keeps the `SEAL` lines and they are passed back with `--seals <file>` or `--seal
 [docs/agent-system.md](docs/agent-system.md) section 9 has the procedure.
 
 The BOQ command writes no file while one quantity row is defective (for example `nan`, a
-unit outside the rulebook list, no formula or no sheet), and renames a BOQ left by an
-earlier run to `<boq.csv>.SUPERSEDED`. Every line it writes carries `source_revision` and
+unit outside the rulebook list, no formula, no sheet or no revision), and renames a BOQ
+left by an earlier run to `<boq.csv>.SUPERSEDED`, never writing over a copy set aside
+before. Every line it writes carries `source_revision` and
 a `boq_status` that starts `DRAFT` or `PARTIAL DRAFT`. It also writes
 `<boq.csv>.STATUS.txt`. A BOQ it writes is never a reviewed one.
 
