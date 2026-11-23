@@ -37,6 +37,7 @@ import hashlib
 import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -113,6 +114,11 @@ def _normalize(text: Any) -> str:
     return " ".join(text.split())
 
 
+def _folded_name(name: str) -> str:
+    """A file name with letter case and Unicode composition ignored, to compare spellings."""
+    return unicodedata.normalize("NFC", name).casefold()
+
+
 def _sha256(path: Path) -> str:
     """The sha256 of a file, or a text that matches no digest if it cannot be read."""
     try:
@@ -139,6 +145,7 @@ class _Checker:
         self.links: dict[str, list[str]] = {}
         self._ancestors: dict[str, frozenset[str]] = {}
         self._names: dict[Path, set[str]] = {}
+        self._folded: dict[Path, set[str]] = {}
         self._documents: dict[Path, pdfium.PdfDocument] = {}
 
     def report(self, package: str, check: str, detail: str, record: str = "") -> None:
@@ -168,12 +175,19 @@ class _Checker:
             if not resolved.is_relative_to(self.root):
                 return None
             # On a file system that ignores letter case, "A.pdf" and "a.pdf" open
-            # the same file. Only the spelling the folder lists is taken.
+            # the same file; on one that does not, "A.pdf" names a file that is not
+            # there. Either way only the spelling the folder lists is taken, and a
+            # name that matches a listed one once letter case is ignored is refused,
+            # so the check gives the same answer on every file system.
             folder = self.project
             for part in parts:
                 if folder not in self._names:
-                    self._names[folder] = set(os.listdir(folder)) if folder.is_dir() else set()
-                if part not in self._names[folder] and os.path.lexists(folder / part):
+                    names = set(os.listdir(folder)) if folder.is_dir() else set()
+                    self._names[folder] = names
+                    self._folded[folder] = {_folded_name(name) for name in names}
+                if part not in self._names[folder] and (
+                        os.path.lexists(folder / part)
+                        or _folded_name(part) in self._folded[folder]):
                     return None
                 folder = folder / part
         except (OSError, RuntimeError, ValueError):
