@@ -20,7 +20,8 @@ of PR #2), so the real-PDF runs done on that commit still apply. If `git log -1 
 shows a newer commit, re-check every status below against the code before relying on it.
 
 **Changes since that baseline (2026-11-17, repo rescue).** These supersede the matching
-lines in sections 5, 8, 11, 12, 13, 14, 16 and 17 below, which still describe `35e9194`:
+lines in sections 5, 8, 11, 12, 13, 14, 16 and 17 below, which still describe `35e9194`
+(section 14 was rewritten on 2026-11-22; see the note below):
 
 - `requirements.txt` now lists Pillow and pins all four packages. No separate
   `pip install pillow` is needed.
@@ -33,7 +34,8 @@ lines in sections 5, 8, 11, 12, 13, 14, 16 and 17 below, which still describe `3
   modules and `TAKEOFF_METHOD.md`, and a root `CLAUDE.md` points here.
 
 **Extraction fidelity changes (2026-11-17).** These supersede the matching lines in
-sections 8, 9, 11, 14 and 17 below and the probe table in the docs file:
+sections 8, 9, 11, 14 and 17 below and the probe table in the docs file (section 14 was
+rewritten on 2026-11-22; see the note below):
 
 - Dimension tokens accept ASCII marks, typographic quotes (U+2019, U+201D) and primes
   (U+2032, U+2033), and keep fraction-only inches whole (`3/4"`). Tokens are still returned
@@ -95,7 +97,7 @@ synthetic files only. Neither has been run on a real plan set:
   `<boq.csv>.STATUS.txt`, which starts `DRAFT`, `PARTIAL DRAFT` or `NOT WRITTEN`. Every BOQ
   line has `source_revision` and `boq_status`. `boq.export_boq` takes an optional
   `extra_columns`.
-- 310 tests in total.
+- 310 tests in total at `dbce73b` (2026-11-23).
 
 **Framing module merged (2026-11-17).** PR #1 is merged, so `framing_takeoff.py` is on
 `main`. This supersedes the PR #1 paragraph in section 16.
@@ -126,6 +128,12 @@ supersedes the "still open" stacked-fraction line above.
   another dimension), the two are not rejoined; a stack with no neighbouring characters in
   rotated text is left as extracted; fractions drawn as outlined vector shapes are not text
   at all. Fractional dimensions still need checking against the drawing.
+
+**Sections 6 and 14 rewritten (2026-11-22).** Both were rewritten against `acfab9f`, then
+checked again at `dbce73b`, the head of PR #11, on 2026-11-23. Section 6 now lists nine
+modules. Where they and the notes disagree, follow `docs/agent-system.md` section 10, "When
+sources disagree". A test count belongs to the revision it names. Sections 5, 7, 8, 9, 10,
+11, 12, 13, 16 and 17 still contain older statements.
 
 **Status labels** (based only on code that was read and run):
 
@@ -224,13 +232,26 @@ so the module imports with the standard library only and tests can mock it via
 
 ## 6. Modules
 
+Checked against the code and tests at `dbce73b`, the head of PR #11, on 2026-11-23. Of
+the seven modules checked at `acfab9f` on 2026-11-22, only `boq.py` changed since.
+
 | Module | Purpose | Status |
 |---|---|---|
-| `pdf_intelligence.py` | Page inventory, text extraction, classification, JSON/HTML reports, page previews | IMPLEMENTED (limits in section 14) |
-| `visual_inspect.py` | Renders pages to `output/rendered/` (200 DPI default). Optionally marks template-match **candidates** from a cropped symbol image. | Rendering IMPLEMENTED (ran on a real PDF; needs Pillow). Template matching NOT VERIFIED. No tests, not in CI path filter. |
-| `vector_takeoff.py` | `distance_feet` and `polyline_length_feet` (drawing units divided by a supplied scale), `deduct_openings`, `stud_count` (regular spacing plus both wall ends; no corners, openings or built-up posts), `plate_length_feet` (length times plate count, no waste allowance). Every input is validated. | IMPLEMENTED + tested (7 tests). Not connected to any PDF extraction: callers pass in points, lengths and the scale. |
+| `pdf_intelligence.py` | Page inventory, text extraction, sheet numbers, dimension tokens, classification, JSON/HTML reports, page previews | IMPLEMENTED: 21 unit tests (one mocks pypdfium2) and 17 in `test_real_pdf.py`: 16 read synthetic PDFs with real pypdfium2 or run the CLI, and 1 checks that the committed fixture matches its builder. Limits in section 14. |
+| `stacked_fractions.py` | `page_text_with_fractions(text_page, text)`, called by `analyze_pdf` for every page, and `rebuild_stacked_fractions(chars)`. Rewrites a stacked `1` over `2` as `1/2` from character boxes and font sizes. Returns the text unchanged when pdfium gives no per-character data. | IMPLEMENTED: 20 tests on synthetic character records, and 1 test that reads a synthetic PDF with real pypdfium2. Three open cases in section 14. |
+| `visual_inspect.py` | Renders pages to `output/rendered/` (200 DPI default). Optionally marks template-match **candidates** from a cropped symbol image. Imports `cv2`, `numpy` and `pypdfium2` at module load. | Rendering ran unmocked on a synthetic 3-page PDF on 2026-11-10, and has no test. Template matching NOT VERIFIED. In the CI path filter (`**.py`), but no test imports it. |
+| `vector_takeoff.py` | `distance_feet` and `polyline_length_feet` (drawing units divided by a supplied scale), `deduct_openings`, `stud_count` (regular spacing plus both wall ends; no corners, openings or built-up posts), `plate_length_feet` (length times plate count, no waste allowance). Inputs are validated, except that `polyline_length_feet` never checks a single point and a point that is not a sequence raises `TypeError` (section 14). | IMPLEMENTED: 7 tests. Invalid points and some input checks have no test (section 14). Not connected to PDF extraction: callers pass in points, lengths and the scale. |
+| `framing_takeoff.py` | `calculate_plate_lf(wall_length_ft, plate_courses, waste_percent=5)`, `plate_lf_breakdown(wall_length_ft, plate_courses, waste_percent=0)`, which keeps the measured length and any allowance apart, and `plan_stock_cuts(cut_lengths_ft, stock_lengths_ft, kerf_ft=0)`, a cutting aid on caller-supplied stock lengths. | IMPLEMENTED: 21 tests on synthetic inputs. Not connected to PDF extraction. `plan_stock_cuts` is not a takeoff quantity or an order. |
+| `boq.py` | `export_boq(items, path, extra_columns=())` writes the BOQ CSV in the `TAKEOFF_METHOD.md` line format, with any `extra_columns` after the seven. Raises `ValueError` naming the items with an empty formula or source sheet, and then writes nothing. It does not check that a quantity is right. | IMPLEMENTED: 8 tests on synthetic items. Not connected to PDF extraction. |
+| `dimension_register.py` | `validate_register(entries)` returns `missing_source` and `conflicting_values` flags. It never picks a value. | IMPLEMENTED: 8 tests on synthetic entries. Not connected to PDF extraction. |
+| `takeoff_records.py` | `read_records(path)`, `quantity_row_problems(row)`, `boq_items_from_records(records)`, `rejected_quantity_rows(records)` and `register_entries_from_records(records)`, and the command `python3 -B takeoff_records.py <records.csv> <boq.csv>`. Carries `QTO-` record rows to `export_boq` and `validate_register`. A quantity row with no number is held open and never given one; a defective row, or a number with no revision, stops the export. Writes `<boq.csv>.STATUS.txt`. When it writes no BOQ, it sets a BOQ from an earlier run aside as `.SUPERSEDED`, `.SUPERSEDED.2` and so on, never over an earlier copy. Measures and rounds nothing. | IMPLEMENTED: 55 test runs on synthetic records, 47 of them distinct: `VerifierFindingsTests` inherits the 8 tests of `RecordsFileTests`, so those run twice. Not connected to PDF extraction. |
+| `evidence_package.py` | `check_project(project_dir, seals=None)` and the command `python3 -B evidence_package.py <project folder> [--seals <file>]`. Checks the agents' evidence packages (`docs/agent-system.md` section 9): the sha256 of each listed file, the document inventory, record columns and IDs, `based_on` links, each printed string read back at its `bbox`, and BOQ lines against quantity records. Prints `SEAL` lines and checks them again with `--seals`. Only reads. It does not recompute formulas or check that a quantity is right. Imports `pypdfium2` at module load. | IMPLEMENTED: 94 tests on synthetic project folders, some reading the committed synthetic fixture with real pypdfium2. Not run on a real plan set. |
 
-Function signatures are listed in the docs file. Inside `pdf_intelligence.py`, the concerns are
+Function contracts for `pdf_intelligence.py` and `vector_takeoff.py` are in the docs file,
+section 2, which gives only the CLI flags and imports of `visual_inspect.py`. For
+`visual_inspect.py`'s functions and the other modules, the contracts are in their
+docstrings and in the dated
+notes at the top of this file. Inside `pdf_intelligence.py`, the concerns are
 already separate functions: parsing (`analyze_pdf`), extraction (`extract_sheet_number`,
 `extract_dimension_tokens`), classification (`classify_sheet`), diagnostics (the report dict)
 and presentation (`build_html_report`, `render_pdf_pages`).
@@ -317,8 +338,9 @@ All items below are **PLANNED**. Check the code before assuming any of them exis
   without assuming scan origin`).
 - Every page needs visual review. There is no "accepted" status.
 - The report embeds a `limitations` list. Update it whenever capabilities change.
-- pypdfium2 is imported lazily, so tests need no PDF library. The standard-library unittest
-  needs no extra dependencies.
+- `pdf_intelligence.py` imports pypdfium2 lazily, so its unit tests need no PDF library.
+  `visual_inspect.py` and `evidence_package.py` import it at module load. The
+  standard-library unittest needs no extra dependencies.
 - The HTML report is self-contained, links relative `pages/page-NNN.png` files, and escapes
   every PDF-derived string (`ed924f8` and `49c4591` made it tolerate partial summaries).
 - The `vector_takeoff.py` helpers refuse to run without an explicit, valid scale or length,
@@ -349,7 +371,8 @@ the owner asks.
 - **Baseline:** 14 code tests pass at `35e9194`. That is 7 in `test_pdf_intelligence.py` and 7 in
   `test_vector_takeoff.py`, run on Python 3.9.6 locally on 2026-11-10. CI runs Python 3.11.
 - **Subagent checks:** `test_agent_definitions.py` adds 52 tests. The full suite runs 310
-  (2026-11-23).
+  at `dbce73b` (2026-11-23). `docs/pdf-drawing-intelligence.md` section 4 has the count by
+  file.
   They read the files in `.claude/agents/` and `docs/agent-system.md`. They do not run any
   agent, so agent behavior on a plan set is still NOT VERIFIED.
 - **Coverage today:** classification (3 tests), sheet number (1), dimension tokens (1), HTML
@@ -403,34 +426,89 @@ python3 visual_inspect.py plans.pdf
 python3 visual_inspect.py plans.pdf --template crop.png --threshold 0.82
 ```
 
-## 14. Known limitations (verified 2026-11-10)
+## 14. Known limitations (checked at `acfab9f`, 2026-11-22, and at `dbce73b`, 2026-11-23)
 
-- **Pillow missing from `requirements.txt`.** The documented install alone leaves the CLI
-  crashing after the JSON is written. `visual_inspect.py` has the same dependency.
-- **Typographic quotes:** pdfium can return `’` (U+2019) or primes `′ ″` as the foot and inch
-  marks. The ASCII-only regex then returns fragments: `24’-6"` gives `['6"']`, and `12′-0″`
-  gives `[]`. A fragment can look like a real dimension, so treat every token as unverified.
-- **Scale notes:** `1/4" = 1'-0"` yields `4"` and `1'-0"`. Dimension tokens include
-  non-dimension strings.
-- **Sheet numbers:** `SHEET A1.01` gives `A1`, `SHEET: S2.1` gives `S2`, `SHEET 1 OF 15`
-  gives `1`, and `SHEET NOTES 1` gives `TES1` (a false positive). Unlabeled title-block IDs
-  give `None`.
+Each item says whether a test covers the behavior. "No test" means it was seen in the code or
+a manual run only.
+
+**Extraction**
+- **Sheet numbers:** a cross-reference such as `SEE SHEET S-2` or `REFER TO SHEET A-501`
+  counts as a labeled match and becomes the sheet number (no test). The report does not say
+  whether a number came from a label or from a lone code. A lone code needs a 1- or 2-letter
+  prefix, so `NER-200` gives `None` (tested), and it must be in capital letters (no test).
+  Text that runs straight on from `SHEET` is read as a label, so `SHEETS-2` gives `S-2`
+  (no test). Check every sheet number against the title block.
+- **Dimension tokens:** a token can run across a line break, because the spaces between its
+  parts may include one (no test). `.5"` gives no token, and `.5" = 1'-0"` is not removed
+  as a scale note, so `1'-0"` is returned (no test). A fraction right after the hyphen is
+  not read: `6'-3/4"` gives the fragment `6'-3` (no test). Decimal inches such as
+  `6.5"` and mixed inches such as `1 1/2"` came out whole in a probe but have no test.
+  Treat every token as unverified until it is checked against the drawing.
+- **Stacked fractions** are left as extracted when the fraction is listed away from its
+  whole inches, when a stack in rotated text has no neighbouring characters, and when the
+  fraction is drawn as outlined shapes (no tests for these three cases).
+- **Scale notes** are left out of the tokens (tested), but they are not read or applied as a
+  scale. No scale is ever detected.
 - **Classification** is plain substring keyword matching. "FLOOR PLAN WITH BEAM" ties, so it
   is `unknown`. "beam" or "column" in a general note can tip a sheet. The confidence is a
-  count, not a probability.
+  count, not a probability. Ties and `medium` confidence have no test.
 - **Low-text heuristic:** a vector-only sheet with outlined text, a blank page and a scan all
   look the same. A page with a text title block over a scanned drawing is *not* flagged.
-- There is no OCR, no geometry, no scale, no symbols, no quantities, and no per-item location.
+  Only a blank page is tested.
+- **Rotation:** 90° is tested on a real PDF. 180° and 270° are NOT VERIFIED.
+- **Metadata:** if pdfium raises reading it, the report shows `{}` with no flag (no test).
+- There is no OCR, no geometry, no scale, no symbols, no quantities, and no per-item location
+  (all PLANNED, sections 4 and 9).
+
+**Errors and the CLI**
+- Corrupt and password-protected PDFs give a clear `ValueError` and a CLI exit of 1
+  (tested with one file of each). A truncated file and a PDF with no pages have no test.
+- The CLI writes the JSON before it renders, so `--dpi=0` or `--dpi=-5` exits 1 and leaves
+  `report.json` with no HTML (manual runs, 2026-11-22; no test).
+- Without Pillow, rendering raises `ModuleNotFoundError` with a traceback. Pillow is now in
+  `requirements.txt`, so this happens only when the install was skipped (no test).
 - The PDF is opened twice (once to analyze, once to render).
-- CI only runs mocked tests. Real pypdfium2 behavior is never exercised in CI.
-- CI path filter: changes to `visual_inspect.py`, `requirements.txt`, `README.md`, `docs/`
-  or `.claude/` do **not** trigger CI.
-- **Stray gitlink:** `35e9194` added `pdf-takeoff-` as a gitlink (mode 160000) pointing at
-  commit `b2587d8` of another repo, with no `.gitmodules`. Checkouts get an empty folder.
-  It looks accidental. Removing it is the owner's call.
-- **Copilot instructions are out of date:** `.github/copilot-instructions.md` describes only
-  `visual_inspect.py` and `distance_feet`. It does not mention `pdf_intelligence.py`, the
-  framing helpers or `TAKEOFF_METHOD.md`, and its test commands use `python`, not `python3`.
+
+**Other modules**
+- `vector_takeoff.py`: invalid points, bad scales in `polyline_length_feet`, and negative
+  lengths in `deduct_openings` and `plate_length_feet` are rejected by the code but have no
+  test. Two inputs are not rejected: `polyline_length_feet` returns 0 for a single point
+  without checking it, so `[(nan, 0)]` gives 0, and a point that is not a sequence raises
+  `TypeError`, not `ValueError` (no tests).
+- `visual_inspect.py` has no tests, and template matching is NOT VERIFIED.
+- `framing_takeoff.calculate_plate_lf` defaults to a 5% allowance. Use
+  `plate_lf_breakdown` for anything that reaches a BOQ line. It overlaps
+  `vector_takeoff.plate_length_feet`, which allows a zero length and has no allowance.
+- `boq.py`, `dimension_register.py`, `framing_takeoff.py`, `takeoff_records.py` and
+  `vector_takeoff.py` are not connected to PDF extraction. No test goes from a PDF to a BOQ
+  line.
+- `evidence_package.py` and `takeoff_records.py` are tested on synthetic project folders
+  and records only. `evidence_package.py` imports `pypdfium2` at module load, unlike
+  `pdf_intelligence.py`, against the lazy-import rule in `architect-reviewer.md`; whether
+  to move the import or change the rule is the owner's call.
+- In `test_takeoff_records.py`, `VerifierFindingsTests` subclasses `RecordsFileTests`, so
+  8 tests run twice: 310 test runs at `dbce73b` are 302 distinct tests.
+
+**Repository and CI**
+- CI runs the whole suite, including the real-pypdfium2 tests, but only on synthetic PDFs.
+  No real plan set is ever tested, and none may be committed.
+- CI runs on changes to any `*.py`, `tests/**`, `requirements.txt`, `.claude/**`, `docs/**`
+  and the workflow file. Changes to `README.md`, `TAKEOFF_METHOD.md`, `CLAUDE.md`,
+  `.gitignore` or `.github/copilot-instructions.md` alone do not trigger it.
+- `.gitignore` ignores `output/` and every `*.pdf` except `tests/fixtures/*.pdf`. A report
+  written anywhere else in the repo, such as `report.json` at the root, is not ignored.
+- The subagent checks in `test_agent_definitions.py` read the agent files as text. Agents
+  ran on synthetic sets on 2026-11-17, 2026-11-22 and 2026-11-23 (`docs/agent-system.md`
+  section 1), but no run with the agent files as committed here is recorded (NOT
+  VERIFIED).
+- `.github/copilot-instructions.md` does not list `evidence_package.py` or
+  `takeoff_records.py`.
+
+**Resolved since 2026-11-10** (kept so older references still make sense): Pillow is in
+`requirements.txt` and every package is pinned; typographic quotes and primes are read; scale
+notes are left out; decimal sheet IDs are kept whole and `SHEET NOTES 1` gives `None`; corrupt
+PDFs give a clear error; the stray `pdf-takeoff-` gitlink is removed; real-PDF tests run in
+CI; `.github/copilot-instructions.md` covers the modules on `main` at `acfab9f`.
 
 ## 15. Development conventions
 
