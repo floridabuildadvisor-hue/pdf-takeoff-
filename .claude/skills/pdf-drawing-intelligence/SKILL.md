@@ -95,7 +95,7 @@ synthetic files only. Neither has been run on a real plan set:
   `<boq.csv>.STATUS.txt`, which starts `DRAFT`, `PARTIAL DRAFT` or `NOT WRITTEN`. Every BOQ
   line has `source_revision` and `boq_status`. `boq.export_boq` takes an optional
   `extra_columns`.
-- 310 tests in total.
+- 312 tests in total.
 
 **Framing module merged (2026-11-17).** PR #1 is merged, so `framing_takeoff.py` is on
 `main`. This supersedes the PR #1 paragraph in section 16.
@@ -348,8 +348,8 @@ the owner asks.
 - **Command (from the repo root):** `python3 -m unittest discover -s tests -v`
 - **Baseline:** 14 code tests pass at `35e9194`. That is 7 in `test_pdf_intelligence.py` and 7 in
   `test_vector_takeoff.py`, run on Python 3.9.6 locally on 2026-11-10. CI runs Python 3.11.
-- **Subagent checks:** `test_agent_definitions.py` adds 52 tests. The full suite runs 310
-  (2026-11-23).
+- **Subagent checks:** `test_agent_definitions.py` adds 52 tests. The full suite runs 312
+  (2026-11-24).
   They read the files in `.claude/agents/` and `docs/agent-system.md`. They do not run any
   agent, so agent behavior on a plan set is still NOT VERIFIED.
 - **Coverage today:** classification (3 tests), sheet number (1), dimension tokens (1), HTML
