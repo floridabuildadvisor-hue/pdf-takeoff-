@@ -429,7 +429,8 @@ has each of those returns saved, unedited, in `02_Working/review/`.
 ## 10. Project memory
 
 - **Verify before you rely.** Read the code and run it. The code wins over any document. If
-  they disagree, report it as a finding.
+  they disagree, report it as a finding. Other conflicts follow "When sources disagree"
+  below.
 - **Update the documentation when a change is approved**, in the same change:
   - the SKILL.md status tables and baseline;
   - `docs/pdf-drawing-intelligence.md` and this file;
@@ -442,6 +443,45 @@ has each of those returns saved, unedited, in `02_Working/review/`.
 - **Read-only agents** list the documentation updates that are needed. The orchestrator
   assigns them to an agent that can write.
 - **Never record client names, files or data in this repo.**
+
+### When sources disagree
+
+This is the only full statement of this rule. Other files link here.
+
+**Instructions and policy** (what an agent must do):
+1. **Authority.** Each kind of question has one governing source:
+   - what the code does: the code and its tests on `main`;
+   - the takeoff method: `TAKEOFF_METHOD.md`;
+   - agent roles, gates, reviews and evidence: this file;
+   - one agent's duties: its agent file, within this file;
+   - SKILL.md and `docs/pdf-drawing-intelligence.md` describe the code and never override
+     it.
+2. **Merged text first.** Within one authority, text merged to `main` outranks text on a
+   branch, in an open pull request, in a working tree, or in a design marked PROPOSED. A
+   newer draft never overrides older merged text.
+3. **Recency,** only between sources of the same authority that are both merged, or both
+   not: the more recently checked text wins.
+4. **Supersession.** A text replaces another only where it says so, naming what it
+   replaces (file, section, date). Nothing is superseded by implication, and a
+   supersession reaches no further than its stated scope.
+5. **Escalation.** If a conflict still stands, do not choose. Report both sources as a
+   finding, with file and line, and ask the owner. Record the owner's decision in the
+   decision report (section 11) and in the documentation update.
+
+Two things outrank all of this: the owner's explicit instruction in chat for the current
+request, and, on a client project, the owner's `takeoff` skill (section 1).
+
+**Facts that belong to one version** (test counts, test results, review results, release
+status):
+- Each one names the exact revision it was measured on: a commit SHA, or for uncommitted
+  work the sha256 of the patch.
+- A fact stays true for its own revision. Historical counts stay valid for their
+  revisions.
+- When the revision changes, measure again. Never carry an older count forward over a
+  newer candidate's result.
+- Never decide between two facts by the rules above. Compare their revisions: if they name
+  different revisions, both can be true. A fact that names no revision is unverified until
+  it is measured again.
 
 ## 11. Decision report
 

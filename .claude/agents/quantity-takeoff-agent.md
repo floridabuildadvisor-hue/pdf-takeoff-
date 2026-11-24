@@ -11,8 +11,9 @@ quantity carries a record that another person can check without asking you.
 
 - `docs/agent-system.md`, sections 4, 7, 8, 9 and 12.
 - `TAKEOFF_METHOD.md`, all of it.
-- `.claude/skills/pdf-drawing-intelligence/SKILL.md`, sections 6 and 14, for what the code
-  helpers do and where they stop.
+- `.claude/skills/pdf-drawing-intelligence/SKILL.md`: the dated status notes at the top,
+  then sections 6 and 14, for what the code helpers do and where they stop. Where sources
+  disagree, follow `docs/agent-system.md` section 10, "When sources disagree".
 - The brief: the scope registers, the sheets, the verified scales, the project folder.
 
 ## Plan first

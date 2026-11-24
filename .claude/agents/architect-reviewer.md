@@ -13,9 +13,14 @@ Building drawings are not your subject. Those go to `architectural-plan-reviewer
 ## Read first
 
 - `docs/agent-system.md`, sections 4, 6, 10 and 12.
-- `.claude/skills/pdf-drawing-intelligence/SKILL.md`, sections 5, 6, 7, 10, 15 and 16.
-- `docs/pdf-drawing-intelligence.md`, sections 1 and 2, for the JSON schema and the
-  function contracts.
+- `.claude/skills/pdf-drawing-intelligence/SKILL.md`: the dated status notes at the top,
+  then sections 5, 6, 7, 10, 15 and 16. Where sources disagree, follow
+  `docs/agent-system.md` section 10, "When sources disagree".
+- `docs/pdf-drawing-intelligence.md`: the status table at the top, then sections 1 and 2,
+  for the JSON schema and the function contracts of `pdf_intelligence.py` and
+  `vector_takeoff.py`. Section 2 gives only the CLI flags and imports of
+  `visual_inspect.py`. For its functions and for the other modules, use SKILL.md section 6
+  and the module docstrings.
 - The plan, the changed files and their tests.
 
 The code wins over the documents. If they disagree, report it as a finding.

@@ -13,16 +13,20 @@ uncertainty.
 ## Read first
 
 - `docs/agent-system.md`, sections 3, 4, 8, 9 and 12.
-- `.claude/skills/pdf-drawing-intelligence/SKILL.md`, sections 7, 8, 9, 10 and 14.
-- `docs/pdf-drawing-intelligence.md`: the JSON schema, the verification log and the probe
-  results.
+- `.claude/skills/pdf-drawing-intelligence/SKILL.md`: the dated status notes at the top,
+  then sections 7, 8, 9, 10 and 14. Where sources disagree, follow `docs/agent-system.md`
+  section 10, "When sources disagree".
+- `docs/pdf-drawing-intelligence.md`: the status table at the top, then sections 1 and 2
+  (the JSON schema and the function contracts) and sections 4 and 5 (the tests and the
+  gaps). Section 3 is a dated log of past runs.
 
 The code wins over the documents. If they disagree, say so.
 
-**Engine:** this repo uses pypdfium2, imported lazily inside functions. PyMuPDF is used in
-the separate `structconsultpro-dashboard` project, not here. Its license is AGPL or
-commercial, so don't add it without the owner's explicit approval. If a task really needs it,
-explain why and stop.
+**Engine:** this repo uses pypdfium2. `pdf_intelligence.py` imports it lazily inside its
+functions; `visual_inspect.py` and `evidence_package.py` import it at module load. PyMuPDF
+is used in the separate `structconsultpro-dashboard` project, not here. Its license is AGPL
+or commercial, so don't add it without the owner's explicit approval. If a task really needs
+it, explain why and stop.
 
 ## Plan first
 
@@ -42,8 +46,9 @@ read and write, and acceptance criteria.
    - the revision and its date, as printed;
    - the size, the rotation and the text status.
 
-   The tool's sheet number and discipline are guesses with known limits (SKILL.md section
-   14). Check each against the title block, and mark what you could not confirm.
+   The tool's sheet number and discipline are guesses with known limits (Known pitfalls
+   below for sheet numbers, SKILL.md section 14 for the discipline). Check each against the
+   title block, and mark what you could not confirm.
 4. **Flag pages for OCR or visual review.** A low-text page is not necessarily a scan. To
    the current heuristic, outlined vector text, a blank page and a scan look the same.
 5. **Record the scale of every sheet and every viewport:**
@@ -83,14 +88,18 @@ read and write, and acceptance criteria.
 
 ## Known pitfalls
 
-These were checked against the code on `main` at `64870e8` on 2026-11-17:
+These were checked against the code on `main` at `64870e8` on 2026-11-17. The modules are
+unchanged at `acfab9f`, where the sheet-number and dimension-token lines were probed again
+on 2026-11-22:
 - **Sheet numbers** are returned as printed (`A1.01`, `S2.1`). `SHEET NOTES 1`,
   `SHEET 1 OF 15` and other bare numbers give `None`. With no label, a code alone on its own
   line (`A-6`) is used when it is the only candidate on the page. A cross-reference such as
   `SEE SHEET S-2` still counts as a labeled match, and the report does not say whether a
   number came from a label or from a bare code. Check every one against the title block.
-- **Dimension tokens** keep ASCII marks, `’` (U+2019) and the primes `′ ″` as printed, and
-  scale notes are left out. A token can still run across a line break.
+- **Dimension tokens** keep ASCII marks, the typographic quotes `’ ”` (U+2019, U+201D) and
+  the primes `′ ″` as printed, and scale notes are left out. Whole and fraction-only inches
+  (`36"`, `3/4"`) are kept whole, but `.5"` gives no token, and other inch-only forms
+  (`1 1/2"`, `6.5"`) have no test. A token can still run across a line break.
 - **Stacked fractions** are rejoined by `stacked_fractions.py` (`13'-1 1/2"`), except when
   the fraction is listed away from its whole inches, has no neighbouring characters in
   rotated text, or is drawn as outlined shapes. Check fractional dimensions against the
@@ -101,15 +110,15 @@ These were checked against the code on `main` at `64870e8` on 2026-11-17:
 Lessons from the dashboard project. These are **not implemented here**:
 - Architect-exported PDFs often have no layers (OCGs), so walls were found by stroke width.
 - Some schedules are outlined text and can't be extracted as text.
-- Vertical text needs its own handling. Inch-only fractions such as `3/4"` are now kept
-  whole; other inch-only strings are NOT VERIFIED.
+- Vertical text needs its own handling.
 
 ## Code tasks
 
 - Probe with small scripts outside the repo, in a scratch directory. Use synthetic PDFs or
   files the caller provides.
 - The repo is public. Never commit client PDFs, client names or generated reports.
-  `output/` and `*.pdf` are git-ignored. Never force-add them.
+  `output/` and `*.pdf` are git-ignored, except `tests/fixtures/*.pdf`, which is only for
+  synthetic test PDFs with no project data. Never force-add a PDF or a report.
 - **When implementing:**
   - Write a failing test first, then make the smallest change that passes it.
   - Put new capabilities in new modules.

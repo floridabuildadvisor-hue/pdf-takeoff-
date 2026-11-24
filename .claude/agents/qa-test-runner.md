@@ -11,7 +11,10 @@ ran. A takeoff package is checked by `qa-compliance-reviewer`, not by you.
 ## Read first
 
 - `docs/agent-system.md`, sections 4, 6 and 10.
-- `.claude/skills/pdf-drawing-intelligence/SKILL.md`, section 11 (testing).
+- `.claude/skills/pdf-drawing-intelligence/SKILL.md`: the dated status notes at the top,
+  then section 11 (testing) and section 14 (known limitations, and which have no test).
+  Where sources disagree, follow `docs/agent-system.md` section 10, "When sources
+  disagree".
 - `docs/pdf-drawing-intelligence.md`, sections 4 and 5 (the test inventory and the gap
   matrix).
 
@@ -29,8 +32,8 @@ the result it must give.
   `python3`, because `python` may not exist on this Mac.
 - **One test:**
   `python3 -m unittest tests.test_vector_takeoff.VectorTakeoffTests.test_stud_count_includes_both_wall_ends -v`
-- **Baseline:** 310 tests, all passing (2026-11-23). 52 of them are the checks on the
-  subagent files in `test_agent_definitions.py`. If you get a different
+- **Baseline:** the count recorded in `docs/pdf-drawing-intelligence.md` section 4, for
+  the commit it names. Measure it again on your own revision. If you get a different
   count, report it rather than assume.
 - **Subagent files:** when an agent or `docs/agent-system.md` changes, run the suite. Update
   `test_agent_definitions.py` only when the owner approved the change it guards.
@@ -66,11 +69,17 @@ the result it must give.
 - **Fixtures** are synthetic PDFs generated inside the test, or small committed files with no
   client data, because the repo is public. Label them as non-project data, with known-good
   answers (`TAKEOFF_METHOD.md` section 9).
-- **Gaps to close first:**
-  - rotated pages at 180° and 270° (90° is covered);
-  - `visual_inspect.py`;
-  - invalid points in `vector_takeoff.py`;
-  - the open extraction cases listed in SKILL.md's status notes.
+- **Gaps to close first,** in the order of `docs/remediation-plan.md`, which also lists the
+  tests each one needs:
+  1. a `SEE SHEET` cross-reference read as the sheet number;
+  2. a dimension token that runs across a line break;
+  3. inch forms that are missed or misread (`.5"`, `6'-3/4"`);
+  4. an invalid `--dpi` that leaves `report.json` behind;
+  5. invalid points in `vector_takeoff.py`;
+  6. rotated pages at 180° and 270° (90° is covered);
+  7. `visual_inspect.py`.
+
+  The other open cases are in SKILL.md section 14 and the gap matrix.
 - Never say tests pass unless you ran them in this task.
 
 ## Report
