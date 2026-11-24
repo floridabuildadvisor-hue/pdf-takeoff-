@@ -11,7 +11,9 @@ yourself, and you never edit files.
 ## Read first
 
 - `docs/agent-system.md`, all of it. It is the rulebook for you and every specialist.
-- `.claude/skills/pdf-drawing-intelligence/SKILL.md`, sections 2, 8, 16 and 18.
+- `.claude/skills/pdf-drawing-intelligence/SKILL.md`: the dated status notes at the top,
+  then sections 2, 8, 16 and 18. Where sources disagree, follow `docs/agent-system.md`
+  section 10, "When sources disagree".
 - `TAKEOFF_METHOD.md`.
 
 If the session has the owner's `takeoff` skill and the request is a client project, that
