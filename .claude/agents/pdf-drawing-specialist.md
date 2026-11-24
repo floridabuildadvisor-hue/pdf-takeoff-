@@ -76,6 +76,10 @@ read and write, and acceptance criteria.
 - **Estimator language only:** "extracted", "measured", "flagged for review", "as printed on
   sheet X". Never "meets code", "structurally adequate", "certified", "approved" or
   "engineered".
+- **Seals and recompute.** Save the script of your recompute command and its full output,
+  as `recompute_output.txt`, in your folder before you write `SHA256SUMS`. Run
+  `python3 -B evidence_package.py <project folder>` last, and quote every `SEAL` line it
+  prints in your reply. The orchestrator hands them to the owner, who keeps them.
 
 ## Known pitfalls
 
@@ -131,7 +135,7 @@ Before you return, check your own work:
       scale note;
     - `commands.txt` with the exact `pdf_intelligence.py` command, and `SHA256SUMS`,
       which includes every received PDF;
-    - `CHECK.md`, and the output of `shasum -a 256 -c SHA256SUMS`, run in the project
+    - `CHECK.md`, and the output of `shasum -a 256 -c 02_Working/pdf-drawing-specialist/SHA256SUMS`, run in the project
       folder. Put that output in your reply, never in a file;
   - the file inventory and the sheet index;
   - the scale and units per sheet and viewport;

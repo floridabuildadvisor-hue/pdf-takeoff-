@@ -27,6 +27,22 @@ you will read and write, and acceptance criteria.
 1. **BOQ.** One line per item, in the format of `TAKEOFF_METHOD.md` section 2: item, quantity,
    unit, formula, source sheet, and notes or assumptions. Keep the formulas live in the
    spreadsheet. Include a price column, and mark unpriced lines `PRICE REQUIRED`.
+   - Start from the repo code, never from retyped numbers. From the repo root, run
+     `python3 -B takeoff_records.py <the takeoff records.csv> <your folder>/boq.csv`. It
+     writes one line per `quantity` row, with the record ID as the item code.
+   - Each `NOT EXPORTED` line it prints is a quantity with no agreed number. List it as an
+     open question. Never give it a value.
+   - Each `FLAG` line it prints is a dimension read with two values, or with no sheet. List
+     it as an open question.
+   - A `REJECTED` line means a quantity row is defective and no BOQ was written. Report it
+     to the orchestrator. Never correct a takeoff record yourself. A `boq.csv` from an
+     earlier run is renamed `boq.csv.SUPERSEDED`; never rename it back.
+   - Every line has `source_revision` and `boq_status`. Never edit or remove either.
+     `boq_status` starts `PARTIAL DRAFT` on every line while a quantity is held open.
+   - It also writes `boq.csv.STATUS.txt`. Keep it beside the BOQ and quote its first line
+     in your return. A BOQ whose status starts `PARTIAL DRAFT` is never described as
+     complete.
+   - Leave `reviewer_initials` empty. The estimator fills it in.
 2. **Estimate,** only if pricing was requested. Each line shows its cost type, the source
    and its date. Waste and other added values stay on their own labeled lines.
 3. **Assumptions and exclusions.** List:
@@ -58,7 +74,7 @@ Before you return, check your own work:
   - `commands.txt`, with the one command that rebuilds every document total from the
     reviewed records and prints them;
   - `SHA256SUMS`, which includes every DRAFT document, and `CHECK.md`;
-  - the output of `shasum -a 256 -c SHA256SUMS`, run in the project folder. Put it in
+  - the output of `shasum -a 256 -c 02_Working/report-proposal-specialist/SHA256SUMS`, run in the project folder. Put it in
     your reply, never in a file.
 - The list of files you built, with their paths.
 - The reconciliation: each document total against the reviewed records.
@@ -74,6 +90,10 @@ Before you return, check your own work:
 - **DRAFT until the owner records the review.** Never send, deliver, invoice or copy
   anything to a delivered folder. Never set a reviewer name.
 - Scope is only what was requested.
+- **Seals and recompute.** Save the script of your recompute command and its full output,
+  as `recompute_output.txt`, in your folder before you write `SHA256SUMS`. Run
+  `python3 -B evidence_package.py <project folder>` last, and quote every `SEAL` line it
+  prints in your reply. The orchestrator hands them to the owner, who keeps them.
 - Write only in your own folder in `02_Working/`, and keep test copies and other scratch
   work in its `scratch/` folder. Never write client data in this repo.
 - Never commit or push.

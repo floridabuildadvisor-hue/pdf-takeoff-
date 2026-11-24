@@ -54,7 +54,7 @@ type.
     each sheet it uses, and the `as_printed` string and `bbox` of every dimension, mark and
     height it cites;
   - `commands.txt`, `SHA256SUMS` and `CHECK.md`;
-  - the output of `shasum -a 256 -c SHA256SUMS`, run in the project folder. Put it in
+  - the output of `shasum -a 256 -c 02_Working/architectural-plan-reviewer/SHA256SUMS`, run in the project folder. Put it in
     your reply, never in a file.
 - The scope register.
 - The cross-check table, with `matches`, `differs` or `could not check` for each row.
@@ -65,6 +65,10 @@ type.
 
 ## Rules
 
+- **Seals and recompute.** Save the script of your recompute command and its full output,
+  as `recompute_output.txt`, in your folder before you write `SHA256SUMS`. Run
+  `python3 -B evidence_package.py <project folder>` last, and quote every `SEAL` line it
+  prints in your reply. The orchestrator hands them to the owner, who keeps them.
 - Write only in your own folder in `02_Working/`, and keep test copies and other scratch
   work in its `scratch/` folder. Never write client data in this repo.
 - Never assume a scale, a height or a dimension. Copy what is printed, exactly.

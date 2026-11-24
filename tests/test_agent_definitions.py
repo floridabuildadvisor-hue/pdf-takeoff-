@@ -59,7 +59,15 @@ RECORD_FIELDS = (
     "method", "status",
 )
 EVIDENCE_FILES = ("commands.txt", "SHA256SUMS", "CHECK.md")
-HASH_CHECK = "shasum -a 256 -c SHA256SUMS"
+HASH_CHECK = "shasum -a 256 -c 02_Working/{folder}/SHA256SUMS"
+PACKAGE_CHECK = "python3 -B evidence_package.py"
+TEST_COMMAND = "python3 -m unittest discover -s tests"
+BOQ_COMMAND = "python3 -B takeoff_records.py"
+TAKEOFF_COLUMNS = (
+    "record_type", "item", "description", "dimension", "formula", "quantity", "unit",
+    "assumptions",
+)
+GATE_VALUES = "<pass|fail|not started>"
 KNOWN_TOOLS = {"Agent", "Read", "Grep", "Glob", "Bash", "Write", "Edit"}
 PLAN_FIELDS = ("scope", "assumptions", "risks", "acceptance criteria")
 BANNED_WORDING = (
@@ -218,7 +226,8 @@ class AgentFileTests(unittest.TestCase):
         for stem in PROJECT_AGENTS - READ_ONLY_AGENTS:
             with self.subTest(agent=stem):
                 section = self.return_section(stem)
-                for item in (*EVIDENCE_FILES, HASH_CHECK, "never in a file"):
+                hash_check = HASH_CHECK.format(folder=stem)
+                for item in (*EVIDENCE_FILES, hash_check, "never in a file"):
                     self.assertIn(item, section)
 
     def test_file_writing_project_agents_keep_scratch_work_in_their_folder(self):
@@ -250,10 +259,85 @@ class AgentFileTests(unittest.TestCase):
     def test_orchestrator_rechecks_every_package_itself(self):
         body = self.agents[ORCHESTRATOR][1]
         step = one_line(body.split("## 4. Check the results", 1)[1].split("\n## ", 1)[0])
-        for item in (HASH_CHECK, "`diff`", "`based_on`", "02_Working/review/"):
+        hash_check = HASH_CHECK.format(folder="<agent>")
+        for item in (PACKAGE_CHECK, hash_check, "`diff`", "`based_on`", "02_Working/review/"):
             with self.subTest(item=item):
                 self.assertIn(item, step)
         self.assertRegex(one_line(body), r"Why: .*record ID")
+
+    def test_orchestrator_may_run_every_command_its_steps_name(self):
+        body = self.agents[ORCHESTRATOR][1]
+        self.assertIn(TEST_COMMAND, one_line(body.split("## Rules", 1)[0]))
+        rules = one_line(body.split("## Rules", 1)[1])
+        commands = (TEST_COMMAND, PACKAGE_CHECK, HASH_CHECK.format(folder="<agent>"))
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertIn(f"`{command}", rules)
+
+    def test_orchestrator_can_report_a_gate_it_has_not_reached(self):
+        self.assertEqual(self.agents[ORCHESTRATOR][1].count(GATE_VALUES), 3)
+
+    def test_takeoff_agent_writes_the_columns_the_code_reads(self):
+        body = self.agents["quantity-takeoff-agent"][1]
+        for column in TAKEOFF_COLUMNS:
+            with self.subTest(column=column):
+                self.assertIn(f"`{column}`", body)
+        self.assertIn(PACKAGE_CHECK, one_line(body))
+
+    def test_report_agent_builds_the_boq_lines_with_the_repo_code(self):
+        body = one_line(self.agents["report-proposal-specialist"][1])
+        for item in (BOQ_COMMAND, "NOT EXPORTED", "FLAG"):
+            with self.subTest(item=item):
+                self.assertIn(item, body)
+
+    def test_every_project_writer_quotes_its_seals_and_keeps_its_recompute_output(self):
+        for stem in PROJECT_FILE_WRITERS:
+            with self.subTest(agent=stem):
+                body = one_line(self.agents[stem][1])
+                self.assertIn("quote every `SEAL` line", body)
+                self.assertIn("`recompute_output.txt`", body)
+
+    def test_orchestrator_checks_against_the_owners_seals_and_reports_new_ones(self):
+        body = self.agents[ORCHESTRATOR][1]
+        step = one_line(body.split("## 4. Check the results", 1)[1].split("\n## ", 1)[0])
+        for item in ("--seals -", "`seal_mismatch`", "failed gate"):
+            with self.subTest(item=item):
+                self.assertIn(item, step)
+        self.assertIn("--seals -", one_line(body.split("## Rules", 1)[1]))
+
+    def test_the_decision_report_has_a_seals_line_in_both_places(self):
+        for name, text in (("orchestrator", self.agents[ORCHESTRATOR][1]),
+                           ("rulebook", RULEBOOK.read_text(encoding="utf-8"))):
+            with self.subTest(file=name):
+                self.assertRegex(text, r"\nOpen items: .*\nSeals: .*\nIf you say yes:")
+
+    def test_the_rulebook_says_who_creates_keeps_and_checks_seals(self):
+        text = one_line(RULEBOOK.read_text(encoding="utf-8"))
+        for item in ("**At intake.**", "**After each stage.**", "--seals -",
+                     "It does not show that the file was the right one",
+                     "`seal_mismatch` on a received file", "only the owner can do it"):
+            with self.subTest(item=item):
+                self.assertIn(item, text)
+
+    def test_the_rulebook_unit_list_is_the_one_the_code_enforces(self):
+        import takeoff_records
+        text = one_line(RULEBOOK.read_text(encoding="utf-8"))
+        self.assertIn("US customary only: " + ", ".join(takeoff_records.ALLOWED_UNITS) + ".",
+                      text)
+
+    def test_takeoff_and_report_agents_know_the_boq_refusals_and_markers(self):
+        takeoff = one_line(self.agents["quantity-takeoff-agent"][1])
+        for item in ("`revision`", "refuses the whole BOQ"):
+            with self.subTest(agent="takeoff", item=item):
+                self.assertIn(item, takeoff)
+        report = one_line(self.agents["report-proposal-specialist"][1])
+        for item in ("`source_revision`", "`boq_status`", "`PARTIAL DRAFT`",
+                     "`boq.csv.SUPERSEDED`"):
+            with self.subTest(agent="report", item=item):
+                self.assertIn(item, report)
+
+    def test_final_qa_runs_the_package_check(self):
+        self.assertIn(PACKAGE_CHECK, one_line(self.agents["qa-compliance-reviewer"][1]))
 
     def test_engineering_wording_appears_only_as_a_prohibition(self):
         texts = {stem: body for stem, (_, body) in self.agents.items()}
@@ -339,7 +423,10 @@ class RulebookTests(unittest.TestCase):
 
     def test_records_section_defines_the_evidence_package(self):
         section = one_line(self.section(9))
-        for item in (*EVIDENCE_FILES, HASH_CHECK, "/Rotate", "bottom left", "get_charbox"):
+        hash_check = HASH_CHECK.format(folder="<agent>")
+        for item in (*EVIDENCE_FILES, hash_check, "/Rotate", "bottom left", "get_charbox",
+                     "`02_Working/<agent>/`", "`records.csv`", "`register.csv`",
+                     PACKAGE_CHECK):
             with self.subTest(item=item):
                 self.assertIn(item, section)
         for field in RECORD_FIELDS:
@@ -359,11 +446,33 @@ class RulebookTests(unittest.TestCase):
             with self.subTest(item=item):
                 self.assertIn(item, section)
 
+    def test_records_section_defines_the_takeoff_columns(self):
+        section = one_line(self.section(9))
+        for column in TAKEOFF_COLUMNS:
+            with self.subTest(column=column):
+                self.assertIn(f"`{column}`", section)
+        for item in (BOQ_COMMAND, "`quantity`", "never gets a value"):
+            with self.subTest(item=item):
+                self.assertIn(item, section)
+
+    def test_documented_columns_match_the_code(self):
+        import evidence_package
+        import takeoff_records
+        self.assertEqual(evidence_package.REQUIRED_COLUMNS, RECORD_FIELDS)
+        self.assertEqual(takeoff_records.TAKEOFF_COLUMNS, TAKEOFF_COLUMNS)
+        writers = {k: v for k, v in RECORD_PREFIXES.items() if k not in READ_ONLY_AGENTS}
+        self.assertEqual(evidence_package.ID_PREFIXES, writers)
+
+    def test_decision_report_can_show_a_gate_not_reached(self):
+        self.assertEqual(self.section(11).count(GATE_VALUES), 3)
+
     def test_level_2_also_reviews_the_estimate(self):
         self.assertIn("Level 2 runs again on the estimate", one_line(self.section(7)))
 
     def test_gates_and_rules_require_evidence(self):
-        self.assertIn(HASH_CHECK, one_line(self.section(6)))
+        gates = one_line(self.section(6))
+        self.assertIn(PACKAGE_CHECK, gates)
+        self.assertIn(HASH_CHECK.format(folder="<agent>"), gates)
         self.assertIn("**Evidence, not summaries.**", self.section(12))
 
 

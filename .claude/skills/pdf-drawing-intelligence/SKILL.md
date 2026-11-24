@@ -67,6 +67,36 @@ and tested with synthetic data, neither connected to PDF extraction yet:
   or units. It never picks a value; the estimator resolves each flag against the drawings.
 - 63 tests in total.
 
+**Evidence modules (2026-11-22).** Two more modules, both IMPLEMENTED and tested with
+synthetic files only. Neither has been run on a real plan set:
+
+- `evidence_package.py`: `check_project(project_dir)` and the command
+  `python3 -B evidence_package.py <project folder>` check the agents' evidence packages
+  (`docs/agent-system.md` section 9): the sha256 of each listed file, the record columns,
+  the IDs, every `based_on` link, and each printed string read back at its `bbox`. It only
+  reads. It does not recompute formulas or check that a quantity is right.
+  Since the PR #11 review it also checks that every file in `01_Received/` is in the
+  `pdf-drawing-specialist` `SHA256SUMS`, that no listed or cited path leaves the project,
+  that `based_on` links do not run in a circle or point to a later stage, that every
+  quantity with a number leads back to a place on a drawing, and that each line of
+  `02_Working/report-proposal-specialist/boq.csv` matches a quantity record. A crop image
+  is checked for existence only. Paths must be plain project-relative paths, and two
+  revisions recorded for one page are reported. A package whose files and `SHA256SUMS` were
+  both rewritten, or a swapped received file, is found only with `--seals <file>` or
+  `--seals -`, against `SEAL` lines the owner kept from an earlier decision report.
+- `takeoff_records.py`: `boq_items_from_records(records)` and
+  `register_entries_from_records(records)` carry takeoff rows to `export_boq` and
+  `validate_register`. A quantity row with no number is returned as not exported. The
+  command is `python3 -B takeoff_records.py <records.csv> <boq.csv>`.
+  `quantity_row_problems(row)` names what stops a row: a quantity that is not a plain
+  number (`nan`, `inf`, `1e3` and `1,000` are refused), a unit outside `ALLOWED_UNITS`, no
+  formula, no sheet, or an ID that is not `QTO-<number>`. The command writes no BOQ while
+  one such row exists, renames an earlier BOQ to `<boq.csv>.SUPERSEDED`, and always writes
+  `<boq.csv>.STATUS.txt`, which starts `DRAFT`, `PARTIAL DRAFT` or `NOT WRITTEN`. Every BOQ
+  line has `source_revision` and `boq_status`. `boq.export_boq` takes an optional
+  `extra_columns`.
+- 310 tests in total.
+
 **Framing module merged (2026-11-17).** PR #1 is merged, so `framing_takeoff.py` is on
 `main`. This supersedes the PR #1 paragraph in section 16.
 
@@ -181,7 +211,7 @@ TAKEOFF_METHOD.md          # the owner's takeoff method (see section 2)
 README.md                  # short overview + planned workflow; no CLI usage any more
 tests/test_pdf_intelligence.py   # 7 tests (pypdfium2 mocked)
 tests/test_vector_takeoff.py     # 7 tests
-tests/test_agent_definitions.py  # 38 checks on the subagent files (no agent is run)
+tests/test_agent_definitions.py  # 52 checks on the subagent files (no agent is run)
 .github/workflows/validate.yml   # unittest on Python 3.11, path-filtered
 .github/copilot-instructions.md  # instructions for GitHub Copilot (out of date, see section 14)
 requirements.txt           # numpy, opencv-python-headless, pypdfium2 (unpinned)
@@ -318,8 +348,8 @@ the owner asks.
 - **Command (from the repo root):** `python3 -m unittest discover -s tests -v`
 - **Baseline:** 14 code tests pass at `35e9194`. That is 7 in `test_pdf_intelligence.py` and 7 in
   `test_vector_takeoff.py`, run on Python 3.9.6 locally on 2026-11-10. CI runs Python 3.11.
-- **Subagent checks:** `test_agent_definitions.py` adds 38 tests. On `main` at `274b20b`,
-  the full suite runs 146 (2026-11-17).
+- **Subagent checks:** `test_agent_definitions.py` adds 52 tests. The full suite runs 310
+  (2026-11-23).
   They read the files in `.claude/agents/` and `docs/agent-system.md`. They do not run any
   agent, so agent behavior on a plan set is still NOT VERIFIED.
 - **Coverage today:** classification (3 tests), sheet number (1), dimension tokens (1), HTML
@@ -514,9 +544,10 @@ against the gates, and gives the owner one decision before anything is changed o
 | [`takeoff-domain-reviewer`](../../agents/takeoff-domain-reviewer.md) | Business boundaries and estimator wording | No |
 
 Status: the subagents are a way of working. They add no code capability. Each project agent
-passed one trial on a synthetic plan set (2026-11-17), but none has been run on a real plan
-set (NOT VERIFIED). A quantity an agent reads from a drawing is
-unverified until the estimator checks it.
+passed two trials on a synthetic plan set (2026-11-17), with the agent files of that date.
+Agents ran again on synthetic sets during the PR #11 review (2026-11-22 and 2026-11-23;
+`docs/agent-system.md` section 1). None has been run on a real plan set (NOT VERIFIED). A
+quantity an agent reads from a drawing is unverified until the estimator checks it.
 
 Every project agent must leave an evidence package (`docs/agent-system.md` section 9): one
 row per item with its own ID, the IDs it is based on, the string as printed and where it is
@@ -524,7 +555,8 @@ on the sheet, the commands it ran, and a `SHA256SUMS` file that `shasum -a 256 -
 check. A second trial on the same synthetic set (2026-11-17) ran all ten agents with these
 rules. Every result could be checked from the files alone, and the QA reviewer and the
 orchestrator each caught 3 of 3 planted defects. The special cases, the rule on where
-files go and the second Level 2 pass came out of that trial, and no agent has run with
-them yet (NOT VERIFIED).
+files go and the second Level 2 pass came out of that trial. Agents ran again during the
+PR #11 review (`docs/agent-system.md` section 1), but no run with the agent files as
+committed here is recorded (NOT VERIFIED).
 
 No subagent commits, pushes, opens PRs, sends, delivers or authorizes. The owner does.

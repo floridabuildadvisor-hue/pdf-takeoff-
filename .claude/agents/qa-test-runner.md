@@ -29,8 +29,8 @@ the result it must give.
   `python3`, because `python` may not exist on this Mac.
 - **One test:**
   `python3 -m unittest tests.test_vector_takeoff.VectorTakeoffTests.test_stud_count_includes_both_wall_ends -v`
-- **Baseline:** 146 tests, all passing, on `main` at `274b20b` (2026-11-17). 38 of them are
-  the checks on the subagent files in `test_agent_definitions.py`. If you get a different
+- **Baseline:** 310 tests, all passing (2026-11-23). 52 of them are the checks on the
+  subagent files in `test_agent_definitions.py`. If you get a different
   count, report it rather than assume.
 - **Subagent files:** when an agent or `docs/agent-system.md` changes, run the suite. Update
   `test_agent_definitions.py` only when the owner approved the change it guards.
