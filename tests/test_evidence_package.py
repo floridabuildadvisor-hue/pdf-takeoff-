@@ -11,6 +11,8 @@ import hashlib
 import io
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -680,6 +682,31 @@ class RecordsFormTests(ProjectCase):
                 rows[1].update(change)
                 self.write_package(QTO, "records.csv", rows)
                 self.assertEqual(self.findings(), [(QTO, "incomplete_quantity", "QTO-002")])
+
+    def test_a_revision_that_prints_nothing_is_no_revision(self):
+        for revision in (" ", "\u200b", "\ufeff\u00a0"):
+            with self.subTest(revision=ascii(revision)):
+                rows = qto_rows()
+                rows[1]["revision"] = revision
+                self.write_package(QTO, "records.csv", rows)
+                self.assertIn((QTO, "incomplete_quantity", "QTO-002"), self.findings())
+
+
+class ImportTests(unittest.TestCase):
+    def test_the_module_loads_without_pypdfium2_and_says_so_when_a_pdf_is_read(self):
+        code = (
+            "import sys, tempfile\n"
+            "from pathlib import Path\n"
+            "sys.modules['pypdfium2'] = None\n"
+            "import evidence_package\n"
+            "with tempfile.TemporaryDirectory() as folder:\n"
+            "    checker = evidence_package._Checker(Path(folder))\n"
+            "    print(checker.read_pdf_text('a.pdf', '1', ('0',) * 4))\n")
+        done = subprocess.run([sys.executable, "-B", "-c", code], capture_output=True, text=True,
+                              cwd=Path(__file__).resolve().parent.parent)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(done.stdout.startswith("<could not read a.pdf page 1:"), done.stdout)
+        self.assertIn("pypdfium2", done.stdout)
 
 
 class RevisionTests(ProjectCase):
