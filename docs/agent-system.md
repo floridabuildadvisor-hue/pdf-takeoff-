@@ -38,7 +38,8 @@ before anything is changed or published.
     Level 3) and two live runs, the quantity takeoff agent and the orchestrator;
   - on 2026-11-23, from 04:24 to 04:52 UTC, a four-stage benchmark (inventory, plan review,
     takeoff, BOQ draft). A separate auditor, the only one given the answer key, scored it
-    39 PASS and 6 NOT ATTEMPTED out of 45 checks.
+    39 PASS and 6 NOT ATTEMPTED out of 45 checks. The score file was written at 04:55
+    UTC.
 
   The review report, the score file and the exact agent files used are not archived in this
   repo, and the score has not been re-checked independently. No run with the agent files as

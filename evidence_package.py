@@ -41,12 +41,10 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-import pypdfium2 as pdfium
-
 from boq import BOQ_COLUMNS
 from takeoff_records import (
     BOQ_RECORD_TYPE, EXTRA_BOQ_COLUMNS, RECORD_TYPES, TAKEOFF_COLUMNS,
-    quantity_row_problems, read_records,
+    _visible, quantity_row_problems, read_records,
 )
 
 WORK_FOLDER = "02_Working"
@@ -146,7 +144,7 @@ class _Checker:
         self._ancestors: dict[str, frozenset[str]] = {}
         self._names: dict[Path, set[str]] = {}
         self._folded: dict[Path, set[str]] = {}
-        self._documents: dict[Path, pdfium.PdfDocument] = {}
+        self._documents: dict[Path, Any] = {}
 
     def report(self, package: str, check: str, detail: str, record: str = "") -> None:
         self.findings.append(
@@ -486,7 +484,7 @@ class _Checker:
         if not (row.get("quantity") or "").strip():
             return
         problems = [p for p in quantity_row_problems(row) if not p.startswith("the ID")]
-        if not (row.get("revision") or "").strip():
+        if not _visible(row.get("revision") or ""):
             problems.append("no revision")
         if problems:
             self.report(package, "incomplete_quantity", "; ".join(problems), record)
@@ -650,6 +648,11 @@ class _Checker:
             self.counts["crops_not_compared"] += 1
 
     def read_pdf_text(self, file_name: str, page: str, coordinates: tuple[str, ...]) -> str:
+        # Imported here, so the checks that read no PDF run without the library.
+        try:
+            import pypdfium2 as pdfium
+        except ImportError as error:
+            return f"<could not read {file_name} page {page}: pypdfium2 is not installed ({error})>"
         try:
             path = self.inside(file_name)
             if path is None:
