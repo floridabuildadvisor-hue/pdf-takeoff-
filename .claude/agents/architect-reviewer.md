@@ -72,7 +72,10 @@ will read, and acceptance criteria.
    - A performance claim needs a measured number. Without one, label it NOT VERIFIED.
 5. **Dependencies.**
    - No new dependency without a stated reason, and every one goes in `requirements.txt`.
-   - pypdfium2 stays imported lazily inside functions, so tests can mock it.
+   - pypdfium2 is imported inside the functions that read a PDF, so the module loads
+     without it and tests can mock it. `pdf_intelligence.py` and `evidence_package.py` do
+     this. `visual_inspect.py` imports it at module load, as it has since it was added; it
+     is the one known exception, not a finding.
    - PyMuPDF (AGPL or commercial license) needs the owner's approval before it is added.
 6. **No needless rewrites.** The diff is surgical. Unrelated code, comments and formatting
    are untouched.
