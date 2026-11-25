@@ -133,7 +133,8 @@ supersedes the "still open" stacked-fraction line above.
 checked again at `dbce73b`, the head of PR #11, on 2026-11-23. Section 6 now lists nine
 modules. Where they and the notes disagree, follow `docs/agent-system.md` section 10, "When
 sources disagree". A test count belongs to the revision it names. Sections 5, 7, 8, 9, 10,
-11, 12, 13, 16 and 17 still contain older statements.
+11, 12, 13, 16 and 17 still contain older statements. On 2026-11-24 the pypdfium2 import
+and Copilot items in sections 6, 10 and 14 were checked again at `18ea305`, after PR #13.
 
 **Status labels** (based only on code that was read and run):
 
@@ -221,7 +222,7 @@ tests/test_pdf_intelligence.py   # 7 tests (pypdfium2 mocked)
 tests/test_vector_takeoff.py     # 7 tests
 tests/test_agent_definitions.py  # 52 checks on the subagent files (no agent is run)
 .github/workflows/validate.yml   # unittest on Python 3.11, path-filtered
-.github/copilot-instructions.md  # instructions for GitHub Copilot (out of date, see section 14)
+.github/copilot-instructions.md  # instructions for GitHub Copilot
 requirements.txt           # numpy, opencv-python-headless, pypdfium2 (unpinned)
 pdf-takeoff-               # stray gitlink to another repo, empty on checkout (see section 14)
 ```
@@ -245,7 +246,7 @@ the seven modules checked at `acfab9f` on 2026-11-22, only `boq.py` changed sinc
 | `boq.py` | `export_boq(items, path, extra_columns=())` writes the BOQ CSV in the `TAKEOFF_METHOD.md` line format, with any `extra_columns` after the seven. Raises `ValueError` naming the items with an empty formula or source sheet, and then writes nothing. It does not check that a quantity is right. | IMPLEMENTED: 8 tests on synthetic items. Not connected to PDF extraction. |
 | `dimension_register.py` | `validate_register(entries)` returns `missing_source` and `conflicting_values` flags. It never picks a value. | IMPLEMENTED: 8 tests on synthetic entries. Not connected to PDF extraction. |
 | `takeoff_records.py` | `read_records(path)`, `quantity_row_problems(row)`, `boq_items_from_records(records)`, `rejected_quantity_rows(records)` and `register_entries_from_records(records)`, and the command `python3 -B takeoff_records.py <records.csv> <boq.csv>`. Carries `QTO-` record rows to `export_boq` and `validate_register`. A quantity row with no number is held open and never given one; a defective row, or a number with no revision, stops the export. Writes `<boq.csv>.STATUS.txt`. When it writes no BOQ, it sets a BOQ from an earlier run aside as `.SUPERSEDED`, `.SUPERSEDED.2` and so on, never over an earlier copy. Measures and rounds nothing. | IMPLEMENTED: 55 test runs on synthetic records, 47 of them distinct: `VerifierFindingsTests` inherits the 8 tests of `RecordsFileTests`, so those run twice. Not connected to PDF extraction. |
-| `evidence_package.py` | `check_project(project_dir, seals=None)` and the command `python3 -B evidence_package.py <project folder> [--seals <file>]`. Checks the agents' evidence packages (`docs/agent-system.md` section 9): the sha256 of each listed file, the document inventory, record columns and IDs, `based_on` links, each printed string read back at its `bbox`, and BOQ lines against quantity records. Prints `SEAL` lines and checks them again with `--seals`. Only reads. It does not recompute formulas or check that a quantity is right. Imports `pypdfium2` at module load. | IMPLEMENTED: 94 tests on synthetic project folders, some reading the committed synthetic fixture with real pypdfium2. Not run on a real plan set. |
+| `evidence_package.py` | `check_project(project_dir, seals=None)` and the command `python3 -B evidence_package.py <project folder> [--seals <file>]`. Checks the agents' evidence packages (`docs/agent-system.md` section 9): the sha256 of each listed file, the document inventory, record columns and IDs, `based_on` links, each printed string read back at its `bbox`, and BOQ lines against quantity records. Prints `SEAL` lines and checks them again with `--seals`. Only reads. It does not recompute formulas or check that a quantity is right. At `dbce73b` it imported `pypdfium2` at module load; since PR #13 (`18ea305`) it imports it only when it reads a PDF. | IMPLEMENTED: 94 tests at `dbce73b` (96 at `18ea305`) on synthetic project folders, some reading the committed synthetic fixture with real pypdfium2. Not run on a real plan set. |
 
 Function contracts for `pdf_intelligence.py` and `vector_takeoff.py` are in the docs file,
 section 2, which gives only the CLI flags and imports of `visual_inspect.py`. For
@@ -339,7 +340,8 @@ All items below are **PLANNED**. Check the code before assuming any of them exis
 - Every page needs visual review. There is no "accepted" status.
 - The report embeds a `limitations` list. Update it whenever capabilities change.
 - `pdf_intelligence.py` imports pypdfium2 lazily, so its unit tests need no PDF library.
-  `visual_inspect.py` and `evidence_package.py` import it at module load. The
+  Since `18ea305`, `evidence_package.py` also imports it only when it reads a PDF.
+  `visual_inspect.py` imports it at module load, the one exception. The
   standard-library unittest needs no extra dependencies.
 - The HTML report is self-contained, links relative `pages/page-NNN.png` files, and escapes
   every PDF-derived string (`ed924f8` and `49c4591` made it tolerate partial summaries).
@@ -428,6 +430,8 @@ python3 visual_inspect.py plans.pdf --template crop.png --threshold 0.82
 
 ## 14. Known limitations (checked at `acfab9f`, 2026-11-22, and at `dbce73b`, 2026-11-23)
 
+The pypdfium2 import and Copilot items were checked again at `18ea305` on 2026-11-24.
+
 Each item says whether a test covers the behavior. "No test" means it was seen in the code or
 a manual run only.
 
@@ -483,9 +487,7 @@ a manual run only.
   `vector_takeoff.py` are not connected to PDF extraction. No test goes from a PDF to a BOQ
   line.
 - `evidence_package.py` and `takeoff_records.py` are tested on synthetic project folders
-  and records only. `evidence_package.py` imports `pypdfium2` at module load, unlike
-  `pdf_intelligence.py`, against the lazy-import rule in `architect-reviewer.md`; whether
-  to move the import or change the rule is the owner's call.
+  and records only.
 - In `test_takeoff_records.py`, `VerifierFindingsTests` subclasses `RecordsFileTests`, so
   8 tests run twice: 310 test runs at `dbce73b` are 302 distinct tests.
 
@@ -501,14 +503,14 @@ a manual run only.
   ran on synthetic sets on 2026-11-17, 2026-11-22 and 2026-11-23 (`docs/agent-system.md`
   section 1), but no run with the agent files as committed here is recorded (NOT
   VERIFIED).
-- `.github/copilot-instructions.md` does not list `evidence_package.py` or
-  `takeoff_records.py`.
 
 **Resolved since 2026-11-10** (kept so older references still make sense): Pillow is in
 `requirements.txt` and every package is pinned; typographic quotes and primes are read; scale
 notes are left out; decimal sheet IDs are kept whole and `SHEET NOTES 1` gives `None`; corrupt
 PDFs give a clear error; the stray `pdf-takeoff-` gitlink is removed; real-PDF tests run in
-CI; `.github/copilot-instructions.md` covers the modules on `main` at `acfab9f`.
+CI; `.github/copilot-instructions.md` covers the nine modules on `main` at `18ea305`;
+`evidence_package.py` imports `pypdfium2` only when it reads a PDF (PR #13), and
+`architect-reviewer.md` names `visual_inspect.py` as the one exception to that rule.
 
 ## 15. Development conventions
 

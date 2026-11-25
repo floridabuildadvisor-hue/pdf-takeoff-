@@ -27,9 +27,25 @@ only: count and measure what is drawn, and keep every value traceable to its she
   separate values (no allowance unless one is given). `calculate_plate_lf` returns only
   the total and defaults to 5%. `plan_stock_cuts` packs caller-supplied cuts into
   caller-supplied stock lengths; it is a cutting aid, not a takeoff quantity or an order.
-- `boq.py` exports BOQ lines to CSV with `export_boq(items, path)`. Columns: `item_code`,
-  `quantity`, `unit`, `formula`, `source_sheet`, `notes`, `reviewer_initials`. A line with
-  an empty formula or source sheet stops the export with a `ValueError` naming the codes.
+- `boq.py` exports BOQ lines to CSV with `export_boq(items, path, extra_columns=())`.
+  Columns: `item_code`, `quantity`, `unit`, `formula`, `source_sheet`, `notes`,
+  `reviewer_initials`, then any `extra_columns`. A line with an empty formula or source
+  sheet stops the export with a `ValueError` naming the codes.
+- `takeoff_records.py` carries the takeoff agent's `QTO-` record rows
+  (`docs/agent-system.md` section 9) into the BOQ export and the dimension register:
+  `read_records`, `quantity_row_problems`, `boq_items_from_records`,
+  `rejected_quantity_rows` and `register_entries_from_records`. A quantity row with an
+  empty `quantity` is held open and left out. A defective row, or a number with no
+  revision, writes no BOQ. Every BOQ line adds `source_revision` and `boq_status`
+  (`DRAFT` or `PARTIAL DRAFT`), `reviewer_initials` stays empty, and
+  `<boq.csv>.STATUS.txt` says whether the BOQ is whole, partial or not written. Nothing
+  here measures, rounds or chooses a value.
+- `evidence_package.py` checks the agents' evidence packages in a project folder
+  (`docs/agent-system.md` section 9) with `check_project(project_dir, seals=None)`: file
+  hashes, the document inventory, record columns and IDs, `based_on` links, printed
+  strings read back from the PDF at their recorded place, and BOQ lines against quantity
+  records. It only reads, prints `SEAL` lines, and exits 1 on any finding. It does not
+  recompute formulas or check that a quantity is right.
 - `dimension_register.py` checks a list of dimensions read from the plans with
   `validate_register(entries)`. It flags entries with no source sheet and names printed
   with different values. It only flags; it never chooses a value.
@@ -43,6 +59,9 @@ only: count and measure what is drawn, and keep every value traceable to its she
   `tests/test_framing_takeoff.py`,
   `tests/test_stacked_fractions.py`,
   `tests/test_dimension_register.py`,
+  `tests/test_takeoff_records.py`,
+  `tests/test_evidence_package.py` (synthetic project folders),
+  `tests/test_agent_definitions.py` (text checks of the subagent files; no agent is run),
   `tests/test_repo_hygiene.py` (requirements, ignore rules, CI workflow) and
   `tests/test_real_pdf.py`, which reads the synthetic fixture
   `tests/fixtures/synthetic_plan_set.pdf` with real pypdfium2. Rebuild the fixture with
@@ -73,6 +92,8 @@ Run the CLIs:
 ```bash
 python3 pdf_intelligence.py path/to/plans.pdf
 python3 visual_inspect.py path/to/plans.pdf --template path/to/symbol-crop.png
+python3 -B takeoff_records.py path/to/records.csv path/to/boq.csv
+python3 -B evidence_package.py path/to/project-folder
 ```
 
 There is no build or lint command.
@@ -90,9 +111,10 @@ There is no build or lint command.
 
 ## Code-specific conventions
 
-- `pdf_intelligence.py` imports `pypdfium2` lazily inside its functions so the module
-  imports with the standard library only and tests can substitute it through
-  `sys.modules`. Keep that pattern.
+- `pdf_intelligence.py` and `evidence_package.py` import `pypdfium2` inside the functions
+  that read a PDF, so each module loads without it and tests can substitute it through
+  `sys.modules`. Keep that pattern. `visual_inspect.py` imports it at module load; it is
+  the one exception.
 - Keep parsing, extraction, classification, diagnostics and presentation as separate
   functions. Put new capabilities in new modules.
 - Preserve existing JSON keys. Bump `schema_version` on any schema change and update the

@@ -22,11 +22,11 @@ uncertainty.
 
 The code wins over the documents. If they disagree, say so.
 
-**Engine:** this repo uses pypdfium2. `pdf_intelligence.py` imports it lazily inside its
-functions; `visual_inspect.py` and `evidence_package.py` import it at module load. PyMuPDF
-is used in the separate `structconsultpro-dashboard` project, not here. Its license is AGPL
-or commercial, so don't add it without the owner's explicit approval. If a task really needs
-it, explain why and stop.
+**Engine:** this repo uses pypdfium2. `pdf_intelligence.py` and `evidence_package.py`
+import it inside the functions that read a PDF; `visual_inspect.py` imports it at module
+load. PyMuPDF is used in the separate `structconsultpro-dashboard` project, not here. Its
+license is AGPL or commercial, so don't add it without the owner's explicit approval. If a
+task really needs it, explain why and stop.
 
 ## Plan first
 
